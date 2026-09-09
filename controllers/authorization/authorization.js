@@ -115,9 +115,13 @@ const authorizationControllers = {
 			const validation = validateLoginInput(req.body);
 			if (!validation.valid) {
 				await logSecurityEvent(null, clientIP, "invalid_request", validation.errors, userAgent);
-				// Для API
+				// Для API: повертаємо errors із полем field, щоб фронт підсвітив конкретні інпути.
 				if (req.xhr || req.headers.accept.indexOf("json") > -1) {
-					return res.status(400).json({ status: "error", message: "Invalid input data" });
+					return res.status(400).json({
+						status: "error",
+						message: "Invalid input data",
+						errors: validation.errors, // [{ field: "email", message, keyword }, ...]
+					});
 				}
 
 				// Для форми
@@ -153,7 +157,7 @@ const authorizationControllers = {
 
 				const msg = "Невірний email або пароль";
 				if (req.xhr || req.headers.accept.indexOf("json") > -1) {
-					return res.status(401).json({ status: "error", message: msg });
+					return res.status(401).json({ status: "invalid", message: msg });
 				}
 				return res.render("pages/administrator/authorization/login/login", {
 					error: msg,
@@ -172,7 +176,7 @@ const authorizationControllers = {
 
 				const msg = `Акаунт заблоковано на ${remainingTime} хв.`;
 				if (req.xhr || req.headers.accept.indexOf("json") > -1) {
-					return res.status(423).json({ status: "locked", message: msg });
+					return res.status(423).json({ status: "locked", message: msg, errors: [{ field: "locked", minutes: remainingTime }] });
 				}
 				return res.render("pages/administrator/authorization/login/login", {
 					error: msg,
@@ -186,10 +190,13 @@ const authorizationControllers = {
 			if (user.active !== 1) {
 				await connection.rollback();
 				await logSecurityEvent(user.id, clientIP, "login_inactive", { status_code: user.active }, userAgent);
+
 				const msg = "Акаунт неактивний або заблокований адміністратором";
+
 				if (req.xhr || req.headers.accept.indexOf("json") > -1) {
-					return res.status(401).json({ status: "error", message: msg });
+					return res.status(401).json({ status: "invalid", message: msg, errors: [{ field: "account_not_active" }] });
 				}
+
 				return res.render("pages/administrator/authorization/login/login", {
 					error: msg,
 					email: normalizedEmail,
@@ -200,7 +207,7 @@ const authorizationControllers = {
 			// КРОК 6: Отримання повних даних користувача
 			const [userRows] = await connection.execute(
 				`
-					SELECT id, email, password, first_name, last_name, role, tfa_enabled, tfa_secret, tfa_last_step, token_version
+					SELECT id, email, password, first_name, last_name, id_lang, tfa_enabled, tfa_secret, tfa_last_step, token_version
 					FROM ${prefix}users 
 					WHERE id = ?
 				`,
@@ -229,9 +236,11 @@ const authorizationControllers = {
 				await logSecurityEvent(fullUser.id, clientIP, "login_failed_invalid_password", { attempt: newFailedCount }, userAgent);
 
 				const msg = "Невірний email або пароль";
+
 				if (req.xhr || req.headers.accept.indexOf("json") > -1) {
-					return res.status(401).json({ status: "error", message: msg });
+					return res.status(401).json({ status: "invalid", message: msg });
 				}
+
 				return res.render("pages/administrator/authorization/login/login", {
 					error: msg,
 					email: normalizedEmail,
@@ -341,8 +350,8 @@ const authorizationControllers = {
 				email: fullUser.email,
 				firstName: fullUser.first_name,
 				lastName: fullUser.last_name,
-				role: fullUser.role || "user",
 				type: "access",
+				id_lang: fullUser.id_lang || 1,
 				jti: crypto.randomUUID(),
 				iat: Math.floor(Date.now() / 1000),
 				token_version: fullUser.token_version + 1,
@@ -376,15 +385,16 @@ const authorizationControllers = {
 			if (req.xhr || req.headers.accept.indexOf("json") > -1) {
 				return res.json({
 					status: "success",
+					url: "/",
 					message: "Login successful",
 					data: {
-						user: { id: fullUser.id, email: fullUser.email, role: fullUser.role || "user" },
+						user: { id: fullUser.id, email: fullUser.email },
 						tokens: { access_token: accessToken, refresh_token: refreshToken },
 					},
 				});
 			}
 
-			return res.redirect("/administrator/dashboard");
+			return res.redirect("/");
 		} catch (error) {
 			if (connection) await connection.rollback();
 			console.error("[LOGIN CRITICAL ERROR]:", error);
@@ -572,6 +582,10 @@ const authorizationControllers = {
 		};
 	},
 
+	hasPermission: (req, slug, action = "view") => {
+		return req.user?.permissions?.[slug]?.[action] === true;
+	},
+
 	/**
 	 * Другий крок входу: перевірка коду 2FA.
 	 * userId береться ВИКЛЮЧНО з серверної сесії (pending_tfa),
@@ -600,7 +614,7 @@ const authorizationControllers = {
 			await connection.beginTransaction();
 
 			const [rows] = await connection.execute(
-				`SELECT id, email, first_name, last_name, role, tfa_secret, tfa_last_step,
+				`SELECT id, email, first_name, last_name, id_lang, tfa_secret, tfa_last_step,
 						tfa_failed_attempts, tfa_locked_until, token_version, active
 				 FROM ${prefix}users WHERE id = ? FOR UPDATE`,
 				[pending.userId]
@@ -686,8 +700,8 @@ const authorizationControllers = {
 					email: user.email,
 					firstName: user.first_name,
 					lastName: user.last_name,
-					role: user.role || "user",
 					type: "access",
+					id_lang: user.id_lang || 1,
 					jti: crypto.randomUUID(),
 					token_version: user.token_version + 1,
 				},
@@ -708,7 +722,7 @@ const authorizationControllers = {
 			delete req.session.pending_tfa;
 
 			await logSecurityEvent(user.id, clientIP, "login_success", { via: "2fa" }, userAgent);
-			return res.json({ status: "success", url: "/administrator/dashboard" });
+			return res.json({ status: "success", url: "/" });
 		} catch (error) {
 			if (connection) await connection.rollback();
 			console.error("[LOGIN TFA ERROR]:", error);
@@ -725,18 +739,66 @@ const authorizationControllers = {
 	 * Ці методи викликаються з routes через tfaSettingsControllers
 	 * Переконайтеся, що вони експортовані або винесені в окремий файл
 	 */
+	isAuthenticated: async (req, res, next) => {
+		// Браузерний перехід → redirect на /login/. API/AJAX → JSON 401.
+		const denyAuth = (msg) => {
+			if (req.xhr || (req.headers.accept || "").indexOf("json") > -1) {
+				return res.status(401).json({ status: "error", message: msg });
+			}
+			return res.redirect("/login/");
+		};
 
-	isAuthenticated: (req, res, next) => {
-		// Ваша стара логіка перевірки токена
 		const token = req.cookies.access_token;
-		if (!token) return res.status(401).json({ status: "error", message: "Unauthorized" });
+		if (!token) return denyAuth("Unauthorized");
 
 		try {
 			const decoded = jwt.verify(token, jwtCfg.jwt_secret);
+
+			// Звірка token_version: інвалідує старі токени після зміни пароля,
+			// вимкнення 2FA чи примусового виходу з усіх пристроїв.
+			const [rows] = await db.execute(`SELECT token_version FROM ${prefix}users WHERE id = ?`, [decoded.userId]);
+			if (rows.length === 0 || rows[0].token_version !== decoded.token_version) {
+				res.clearCookie("access_token");
+				return denyAuth("Token revoked");
+			}
+
+			// Для сумісності з усіма роутами й шаблонами, де використовується user.id:
+			// додаємо id як аліас до userId з токена.
+			decoded.id = decoded.userId;
 			req.user = decoded;
+			// Робимо користувача доступним у всіх EJS-шаблонах як `user`.
+			res.locals.user = decoded;
+
+			// Матриця прав один раз на запит: slug -> {view,add,edit,delete}.
+			const [permRows] = await db.execute(
+				`SELECT upp.slug,
+						MAX(ugp.can_view)   AS can_view,
+						MAX(ugp.can_add)    AS can_add,
+						MAX(ugp.can_edit)   AS can_edit,
+						MAX(ugp.can_delete) AS can_delete
+				 FROM ${prefix}users_to_groups utg
+				 JOIN ${prefix}users_groups_permissions ugp ON ugp.id_group = utg.id_group
+				 JOIN ${prefix}users_permissions_pages upp ON upp.id = ugp.id_page
+				 WHERE utg.id_user = ?
+				 GROUP BY upp.slug`,
+				[decoded.userId]
+			);
+			const perms = {};
+			for (const r of permRows) {
+				perms[r.slug] = {
+					view: r.can_view === 1,
+					add: r.can_add === 1,
+					edit: r.can_edit === 1,
+					delete: r.can_delete === 1,
+				};
+			}
+			req.user.permissions = perms;
+			res.locals.can = (s, a = "view") => req.user.permissions?.[s]?.[a] === true;
+
 			next();
 		} catch (err) {
-			return res.status(401).json({ status: "error", message: "Invalid token" });
+			res.clearCookie("access_token");
+			return denyAuth("Invalid token");
 		}
 	},
 };
