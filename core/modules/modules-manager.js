@@ -33,8 +33,9 @@ class ModuleManager {
 
     /**
      * Завантаження всіх модулів з папки /modules
+     * @param {boolean} autoEnable - Автоматично активувати модулі при завантаженні
      */
-    loadAllModules() {
+    async loadAllModules(autoEnable = false) {
         if (!fs.existsSync(this.modulesPath)) {
             console.log('[ModuleManager] Modules directory does not exist. Creating...');
             fs.mkdirSync(this.modulesPath, { recursive: true });
@@ -43,27 +44,32 @@ class ModuleManager {
 
         const moduleDirs = fs.readdirSync(this.modulesPath);
 
-        moduleDirs.forEach(dirName => {
+        for (const dirName of moduleDirs) {
             const moduleDir = path.join(this.modulesPath, dirName);
 
             // Пропускаємо якщо це не директорія
             if (!fs.statSync(moduleDir).isDirectory()) {
-                return;
+                continue;
             }
 
             // Перевіряємо наявність module.json
             const configPath = path.join(moduleDir, 'module.json');
             if (!fs.existsSync(configPath)) {
                 console.warn(`[ModuleManager] Skipping ${dirName}: no module.json found`);
-                return;
+                continue;
             }
 
             try {
                 this.loadModule(dirName, moduleDir, configPath);
+
+                // Автоматична активація якщо потрібно
+                if (autoEnable) {
+                    await this.enableModule(dirName);
+                }
             } catch (error) {
                 console.error(`[ModuleManager] Error loading module ${dirName}:`, error.message);
             }
-        });
+        }
 
         console.log(`[ModuleManager] Loaded ${this.modules.size} modules`);
     }
@@ -177,6 +183,10 @@ class ModuleManager {
      */
     registerModuleHooks(moduleName) {
         const moduleData = this.modules.get(moduleName);
+        if (!moduleData || !moduleData.instance) {
+            console.error('[ModuleManager] Cannot register hooks for ' + moduleName + ': module not found');
+            return;
+        }
         const hooks = moduleData.instance.getHooks();
 
         Object.keys(hooks).forEach(hookName => {
@@ -291,8 +301,38 @@ class ModuleManager {
      */
     hooksMiddleware() {
         return (req, res, next) => {
-            res.locals.hook = async (hookName, params = {}) => {
-                const results = await this.execHook(hookName, params);
+            res.locals.hook = (hookName, params = {}) => {
+                if (!this.hooksRegistry[hookName]) {
+                    return '';
+                }
+
+                const results = [];
+
+                for (const hook of this.hooksRegistry[hookName]) {
+                    try {
+                        // Перевіряємо чи активний модуль
+                        const moduleData = this.modules.get(hook.moduleName);
+                        if (!moduleData || !moduleData.isEnabled) {
+                            continue;
+                        }
+
+                        // Викликаємо хук синхронно
+                        const result = hook.callback.call(moduleData.instance, params);
+
+                        // Якщо результат Promise - це помилка, ігноруємо
+                        if (result && typeof result.then === 'function') {
+                            console.error(`[ModuleManager] Hook ${hookName} in ${hook.moduleName} is async but should be sync`);
+                            continue;
+                        }
+
+                        if (result !== null && result !== undefined) {
+                            results.push(result);
+                        }
+                    } catch (error) {
+                        console.error(`[ModuleManager] Error executing hook ${hookName} in ${hook.moduleName}:`, error.message);
+                    }
+                }
+
                 return results.join('\n');
             };
             next();
