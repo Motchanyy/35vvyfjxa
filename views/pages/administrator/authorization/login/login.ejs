@@ -115,11 +115,9 @@
 		<script>
 			$(document).ready(function () {
 				$("#authorization_form").submit(function (event) {
-					// Скидаємо попередні помилки
-					$("#authorization_form #email").removeClass("is-invalid");
-					$("#authorization_form #password").removeClass("is-invalid");
-					$("#validation_authorization_form_email").detach();
-					$("#validation_authorization_form_password").detach();
+					// Скидаємо попередні помилки (усі, навіть дубльовані)
+					$("#authorization_form #email, #authorization_form #password").removeClass("is-invalid");
+					$("#authorization_form .invalid-feedback").remove();
 
 					// Зберігаємо посилання на кнопку та інпути
 					var $submitBtn = $(this).find('button[type="submit"]');
@@ -188,36 +186,51 @@
 							$passwordInput.prop("disabled", false);
 							$submitBtn.prop("disabled", false);
 
-							// Валідаційні помилки полів (422)
+							// Валідаційні помилки полів (400)
 							if (data.status === "error" && data.errors) {
+								// Збираємо УНІКАЛЬНІ поля з помилками (AJV може дати кілька
+								// помилок на одне поле — format, pattern, minLength тощо).
+								var fieldsWithError = {};
 								$.each(data.errors, function (index, item) {
-									// Бекенд повертає item.field
-									if (item.field === "email") {
-										$emailInput.addClass("is-invalid");
-										$emailInput.after('<div id="validation_authorization_form_email" class="invalid-feedback">' + '<%= i18n.__("authorization.error.please_fill_out_this_field") %>' + "</div>");
-									}
-									if (item.field === "password") {
-										$passwordInput.addClass("is-invalid");
-										$passwordInput.after('<div id="validation_authorization_form_password" class="invalid-feedback">' + '<%= i18n.__("authorization.error.please_fill_out_this_field") %>' + "</div>");
-									}
+									if (item.field) fieldsWithError[item.field] = true;
 								});
+
+								if (fieldsWithError.email) {
+									$emailInput.addClass("is-invalid");
+									$emailInput.after('<div id="validation_authorization_form_email" class="invalid-feedback"><%= i18n.__("authorization.error.please_fill_out_this_field") %></div>');
+								}
+								if (fieldsWithError.password) {
+									$passwordInput.addClass("is-invalid");
+									$passwordInput.after('<div id="validation_authorization_form_password" class="invalid-feedback"><%= i18n.__("authorization.error.please_fill_out_this_field") %></div>');
+								}
+
+								notyf.error("<%= i18n.__('authorization.error.fill_in_all_required_fields') %>");
+								return;
+							}
+
+							// Акаунт не активний — перевіряємо ПЕРШИМ (конкретніший випадок)
+							if (data.status === "invalid" && data.errors?.[0]?.field === "account_not_active") {
+								notyf.error("<%= i18n.__('authorization.error.account_not_active') %>");
+								return;
 							}
 
 							// Невірний email або пароль (401)
 							if (data.status === "invalid") {
 								notyf.error("<%= i18n.__('authorization.error.incorrect_email_or_password') %>");
+								return;
 							}
 
-							// Акаунт не активний (403)
-							if (data.status === "invalid" && data.errors?.[0]?.field === "account_not_active") {
-								notyf.error("<%= i18n.__('authorization.error.account_not_active') %>");
+							// Акаунт заблокований після невдалих спроб (locked)
+							if (data.status === "locked" || data.status === "rate_limited") {
+								notyf.error(data.message || "");
+								return;
 							}
 
-							// Акаунт заблокований після невдалих спроб (429)
-							// Бекенд повертає status: "locked", не "blocked"
-							if (data.status === "locked") {
-								const minutes = data.errors?.[0]?.minutes || 0;
+							// Обмеження частоти запитів (rate limiter, 429)
+							if (data.status === "rate_limited") {
+								const minutes = data.errors?.[0]?.minutes || 15;
 								notyf.error("<%= i18n.__('authorization.error.authorization_blocked') %>".replace("{{minutes}}", minutes).replace("{{seconds}}", 0));
+								return;
 							}
 						},
 					});
@@ -252,6 +265,14 @@
 
 					if ($btn.prop("disabled")) return false;
 
+					// Перевірка порожнечі до відправки
+					var codeVal = $code.val().trim();
+					if (!codeVal) {
+						$code.addClass("is-invalid").focus();
+						notyf.error("<%= i18n.__('authorization.error.please_fill_out_this_field') %>");
+						return false;
+					}
+
 					$btn.html('<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> ' + '<span role="status">Loading...</span>');
 					$code.prop("disabled", true);
 					$btn.prop("disabled", true);
@@ -278,15 +299,19 @@
 							$code.prop("disabled", false).val("");
 							$btn.prop("disabled", false);
 
-							if (data.status === "error" && data.errors) {
+							// Порожнє поле коду (бекенд: status "error", message "Потрібен код 2FA")
+							if (data.status === "error") {
 								$code.addClass("is-invalid");
-								$code.after('<div id="validation_tfa_code" class="invalid-feedback">' + '<%= i18n.__("authorization.error.please_fill_out_this_field") %>' + "</div>");
+								$code.after('<div id="validation_tfa_code" class="invalid-feedback"><%= i18n.__("authorization.error.please_fill_out_this_field") %></div>');
+								notyf.error("<%= i18n.__('authorization.error.please_fill_out_this_field') %>");
+								$code.focus();
 								return;
 							}
 
+							// Невірний код 2FA
 							if (data.status === "invalid") {
+								$code.addClass("is-invalid").val("").focus();
 								notyf.error("<%= i18n.__('authorization.tfa.error.invalid_code') %>");
-								$code.focus();
 								return;
 							}
 

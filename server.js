@@ -32,6 +32,9 @@ const session = require("express-session");
 const i18n = require("./config/i18n/i18n");
 const loadLanguages = require("./middlewares/languages");
 
+// Система модулів
+const moduleManager = require("./core/modules/modules-manager.js");
+
 // ─── ІНІЦІАЛІЗАЦІЯ EXPRESS ДОДАТКУ ────────────────────
 const app = express();
 
@@ -46,9 +49,11 @@ app.use(
 		contentSecurityPolicy: {
 			directives: {
 				defaultSrc: ["'self'"],
-				scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "https://code.jquery.com", "https://unpkg.com", "'unsafe-inline'"],
-				styleSrc: ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
+				scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "https://code.jquery.com", "https://unpkg.com", "https://cdnjs.cloudflare.com", "https://cdn.socket.io", "'unsafe-inline'"],
+				styleSrc: ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "'unsafe-inline'"],
+				fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "data:"],
 				imgSrc: ["'self'", "data:"],
+				connectSrc: ["'self'", "https://cdn.socket.io", "wss:", "ws:"],
 			},
 		},
 	})
@@ -108,7 +113,12 @@ const allowedOrigins = (process.env.CORS_ORIGINS || "")
 app.use(
 	cors({
 		origin: (origin, cb) => {
-			if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+			// Немає Origin (навігація браузером, curl, server-to-server) — дозволяємо.
+			if (!origin) return cb(null, true);
+			// Список не заданий (порожній CORS_ORIGINS) — застосунок на одному домені, дозволяємо.
+			if (allowedOrigins.length === 0) return cb(null, true);
+			// Список заданий — суворо за ним.
+			if (allowedOrigins.includes(origin)) return cb(null, true);
 			return cb(new Error("Not allowed by CORS"));
 		},
 		credentials: true,
@@ -136,6 +146,17 @@ app.use(
 // Використовуємо EJS як шаблонізатор
 app.set("view engine", "ejs");
 
+// ─── ІНІЦІАЛІЗАЦІЯ СИСТЕМИ МОДУЛІВ ───────────────────
+// Ініціалізуємо менеджер модулів та завантажуємо всі модулі
+moduleManager.init(app);
+moduleManager.loadAllModules();
+
+// Додаємо middleware для хуків в шаблонах
+app.use(moduleManager.hooksMiddleware());
+
+// Реєструємо маршрути для керування модулями
+app.use("/api/modules", require("./routes/modules/modules"));
+
 // ═══════════════════════════════════════════════════════
 // НАЛАШТУВАННЯ ІНТЕРНАЦІОНАЛІЗАЦІЇ ТА ЛОКАЛІЗАЦІЇ
 // ═══════════════════════════════════════════════════════
@@ -157,13 +178,38 @@ app.use(loadLanguages);
  * Приклад: res.locals.can('orders', 'edit')
  */
 app.use((req, res, next) => {
-	res.locals.can = (slug, action = "view") => req.user?.permissions?.[slug]?.[action] === true;
+	// Дефолт: доступу немає (deny by default). На захищених роутах
+	// isAuthenticated перезапише can() реальними правами користувача.
+	res.locals.can = () => false;
 	next();
 });
 
 // ═══════════════════════════════════════════════════════
 // ПІДКЛЮЧЕННЯ МАРШРУТІВ
 // ═══════════════════════════════════════════════════════
+
+// ─── АВТОРИЗАЦІЯ (ПЕРШОЮ — до всіх захищених роутів!) ─
+// Роутер входу має оброблятися раніше за захищені роути,
+// інакше /login/ перехоплюється й не відкривається.
+app.use("/", require("./routes/administrator/authorization/login/login"));
+
+// ─── КОРІНЬ: редирект залежно від автентифікації ─────
+// Не залогінений → на форму входу. Залогінений → на дашборд.
+const jwtRoot = require("jsonwebtoken");
+const cfgRoot = require("./config/config").get("configJWT");
+
+app.get("/", (req, res, next) => {
+	const token = req.cookies?.access_token;
+	if (!token) return res.redirect("/login/");
+	try {
+		jwtRoot.verify(token, cfgRoot.jwt.jwt_secret);
+		// Токен валідний — пускаємо далі, головну віддасть звичайний роут.
+		return next();
+	} catch {
+		res.clearCookie("access_token");
+		return res.redirect("/login/");
+	}
+});
 
 // ─── ГОЛОВНА СТОРІНКА ────────────────────────────────
 app.use("/", require("./routes/routes/routes"));
@@ -194,9 +240,6 @@ app.use("/", require("./routes/analytics/index/analytics"));
 // ─── КАТАЛОГ ────────────────────────────────────────
 app.use("/", require("./routes/catalog/brands/brands"));
 
-// ─── АВТОРИЗАЦІЯ ТА АДМІНІСТРУВАННЯ ─────────────────
-app.use("/", require("./routes/administrator/authorization/login/login"));
-
 // ─── КОНТАКТ-ЦЕНТР ──────────────────────────────────
 app.use("/", require("./routes/contact-center/contact-center"));
 app.use("/", require("./routes/contact-center/telegram/telegram"));
@@ -226,21 +269,38 @@ app.use("/", require("./routes/settings/email/email"));
 app.use((err, req, res, next) => {
 	console.error("Помилка:", err);
 
-	// Логування помилки в файл (опціонально)
-	// logging.error(err);
+	// API-запит — віддаємо JSON, не рендеримо EJS.
+	if (req.xhr || (req.headers.accept || "").indexOf("json") > -1) {
+		return res.status(err.status || 500).json({ status: "error", message: "Internal server error" });
+	}
 
 	res.status(err.status || 500);
-	res.render("pages/error/404", {
-		message: err.message,
-		error: process.env.NODE_ENV === "development" ? err : {},
-	});
+	res.render(
+		"pages/error/404",
+		{
+			message: err.message,
+			error: process.env.NODE_ENV === "development" ? err : {},
+		},
+		(renderErr, html) => {
+			// Якщо сам шаблон помилки впав (напр. немає i18n) — простий текст,
+			// щоб не було вторинного падіння, що маскує справжню причину.
+			if (renderErr) {
+				console.error("[ERROR PAGE RENDER FAILED]:", renderErr.message);
+				return res.status(err.status || 500).send("Internal Server Error");
+			}
+			res.send(html);
+		}
+	);
 });
 
 // ─── ОБРОБКА 404 (СТОРІНКУ НЕ ЗНАЙДЕНО) ─────────────
 app.use((req, res) => {
-	res.status(404).render("pages/error/404", {
-		message: "Сторінку не знайдено",
-		error: { status: 404 },
+	if (req.xhr || (req.headers.accept || "").indexOf("json") > -1) {
+		return res.status(404).json({ status: "error", message: "Not found" });
+	}
+	res.status(404).render("pages/error/404", { message: "Сторінку не знайдено", error: { status: 404 } }, (renderErr, html) => {
+		if (renderErr) return res.status(404).send("Not Found");
+		res.send(html);
 	});
 });
 

@@ -20,7 +20,9 @@
 <%- include('../../partials/header'); %>
 
 <div class="container-fluid py-3">
-
+<!-- Hook: displayOrderTop -->
+<%- hook('displayOrderTop') %>
+<!-- END Hook: displayOrderTop -->
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb mb-0">
@@ -92,7 +94,7 @@
                             </div>
                         </div>
                         <div class="col-6 col-md-2">
-                            <button class="btn btn-primary btn-sm rounded-0 w-100" onclick="applyStatus()">
+                            <button class="btn btn-primary btn-sm rounded-0 w-100" data-action="apply-status">
                                 <i class="fa-solid fa-check me-1"></i> Застосувати
                             </button>
                         </div>
@@ -240,9 +242,9 @@
             <ul class="nav nav-tabs border-0">
                 <li class="nav-item"><button class="nav-link active rounded-0" data-bs-toggle="tab" data-bs-target="#tab-history">
                     <i class="fa-solid fa-clock-rotate-left me-1"></i> Історія статусів</button></li>
-                <li class="nav-item"><button class="nav-link rounded-0" data-bs-toggle="tab" data-bs-target="#tab-events" onclick="loadEvents()">
+                <li class="nav-item"><button class="nav-link rounded-0" data-bs-toggle="tab" data-bs-target="#tab-events" data-action="load-events">
                     <i class="fa-solid fa-list me-1"></i> Журнал подій</button></li>
-                <li class="nav-item"><button class="nav-link rounded-0" data-bs-toggle="tab" data-bs-target="#tab-raw" onclick="loadRaw()">
+                <li class="nav-item"><button class="nav-link rounded-0" data-bs-toggle="tab" data-bs-target="#tab-raw" data-action="load-raw">
                     <i class="fa-solid fa-code me-1"></i> Raw payload</button></li>
             </ul>
         </div>
@@ -285,6 +287,22 @@ function esc(s) {
     });
 }
 function money(v) { return Number(v || 0).toFixed(2) + ' ' + CURRENCY; }
+
+// ── ДЕЛЕГУВАННЯ ПОДІЙ (замість inline onclick — сумісно з CSP) ──
+document.addEventListener('click', function(e) {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    switch (el.dataset.action) {
+        case 'apply-status':       applyStatus(); break;
+        case 'load-events':        loadEvents(); break;
+        case 'load-raw':           loadRaw(); break;
+        case 'link-client':        linkClient(Number(el.dataset.id)); break;
+        case 'unlink-client':      unlinkClient(); break;
+        case 'open-client-search': openClientSearch(); break;
+        case 'create-client':      createClient(); break;
+        case 'load-client':        loadClient(); break;
+    }
+});
 
 // ── СТАТУС ────────────────────────────────────────────────
 function applyStatus() {
@@ -469,7 +487,7 @@ function clientRow(c, withReasons) {
          + (meta.length ? '<div class="small text-muted">' + meta.join(' · ') + '</div>' : '')
          + (reasons ? '<div class="mt-1">' + conf + reasons + '</div>' : '')
          + '</div>'
-         + '<button class="btn btn-sm btn-primary rounded-0" onclick="linkClient(' + c.id + ')">Привʼязати</button>'
+         + '<button class="btn btn-sm btn-primary rounded-0" data-action="link-client" data-id="' + c.id + '">Привʼязати</button>'
          + '</div>';
 }
 
@@ -525,7 +543,7 @@ function renderLinkedClient(c) {
       + '<tr><td class="k">Бонуси</td><td>' + (c.reward_points || 0) + ' б.</td></tr>'
       + '<tr><td class="k">Баланс</td><td>' + money2(c.balance, c.balance_currency) + '</td></tr>'
       + '</table>'
-      + '<button class="btn btn-sm btn-outline-danger rounded-0 w-100" onclick="unlinkClient()">'
+      + '<button class="btn btn-sm btn-outline-danger rounded-0 w-100" data-action="unlink-client">'
       + '<i class="fa-solid fa-link-slash me-1"></i>Відвʼязати</button>';
 }
 
@@ -542,8 +560,8 @@ function renderUnlinked(candidates) {
         html += '<p class="text-muted small mb-2">Збігів не знайдено.</p>';
     }
     html += '<div class="d-flex gap-2 mt-3">'
-          + '<button class="btn btn-sm btn-outline-secondary rounded-0 flex-fill" onclick="openClientSearch()"><i class="fa-solid fa-magnifying-glass me-1"></i>Знайти</button>'
-          + '<button class="btn btn-sm btn-primary rounded-0 flex-fill" onclick="createClient()"><i class="fa-solid fa-user-plus me-1"></i>Створити</button>'
+          + '<button class="btn btn-sm btn-outline-secondary rounded-0 flex-fill" data-action="open-client-search"><i class="fa-solid fa-magnifying-glass me-1"></i>Знайти</button>'
+          + '<button class="btn btn-sm btn-primary rounded-0 flex-fill" data-action="create-client"><i class="fa-solid fa-user-plus me-1"></i>Створити</button>'
           + '</div>';
     document.getElementById('client-body').innerHTML = html;
 }
@@ -581,7 +599,7 @@ function createClient() {
                 const list = res.data.candidates.map(c => clientRow(c, false)).join('');
                 document.getElementById('client-body').innerHTML =
                     '<div class="alert alert-warning rounded-0 small mb-2">' + esc(res.data.message) + '</div>' + list
-                  + '<button class="btn btn-sm btn-outline-secondary rounded-0 w-100 mt-2" onclick="loadClient()">Назад</button>';
+                  + '<button class="btn btn-sm btn-outline-secondary rounded-0 w-100 mt-2" data-action="load-client">Назад</button>';
             } else alert(res.data.message || 'Помилка');
         });
 }
