@@ -39,8 +39,6 @@ const moduleManager = require("./core/modules/modules-manager.js");
 const app = express();
 
 // Довіряємо ЛИШЕ довіреному проксі (Nginx/Cloudflare перед додатком).
-// Число = кількість проксі-хопів. Тоді req.ip коректний, а x-forwarded-for
-// від клієнта не підробляється. Підберіть під вашу інфраструктуру.
 app.set("trust proxy", 1);
 
 // Захисні HTTP-заголовки (CSP, HSTS, X-Frame-Options тощо).
@@ -63,17 +61,14 @@ app.use(
 const server = http.createServer(app);
 
 // ─── ІНІЦІАЛІЗАЦІЯ SOCKET.IO ──────────────────────────
-// Підключаємо socket.io для real-time комунікації
 const { setupSocketIO, getIO } = require("./controllers/socket/socket");
 const io = setupSocketIO(server);
 
 // ─── ІНІЦІАЛІЗАЦІЯ VIBER БОТА ─────────────────────────
-// Webhook для інтеграції з Viber
 const viber_bot = require("./routes/contact-center/viber/viber");
 app.use("/viber/webhook/", viber_bot.middleware());
 
 // ─── INSTAGRAM WEBHOOK (сире тіло для перевірки підпису) ──
-// Має бути ДО bodyParser.json(), інакше req.body не буде Buffer.
 app.use("/", require("./routes/contact-center/instagram/webhook"));
 
 // ─── ЗАВАНТАЖЕННЯ КОНФІГУРАЦІЇ ────────────────────────
@@ -85,27 +80,20 @@ const configServer = config.get("configServer");
 // ═══════════════════════════════════════════════════════
 
 // ─── ПАРСИНГ ТІЛА ЗАПИТУ ──────────────────────────────
-// Для обробки даних з HTML форм
 app.use(bodyParser.urlencoded({ extended: false }));
-// Для обробки JSON запитів
 app.use(bodyParser.json());
-app.use(express.json({ limit: "300kb" })); // Обмеження розміру JSON до 300kb
+app.use(express.json({ limit: "300kb" }));
 
 // ─── СТИСНЕННЯ ВІДПОВІДЕЙ ─────────────────────────────
-// Зменшує розмір відповідей для швидшого завантаження
 app.use(compression());
 
 // ─── СТАТИЧНІ ФАЙЛИ ──────────────────────────────────
-// Обслуговування статичних файлів (CSS, JS, зображення)
 const assetsPath = path.join(__dirname, "assets");
 app.use("/assets", express.static(assetsPath));
 
 // ─── COOKIES ТА CORS ─────────────────────────────────
-// Парсинг cookies з запитів
 app.use(cookieParser());
 
-// CORS лише для довірених доменів + підтримка кукі.
-// Впишіть реальні домени вашої CRM у CORS_ORIGINS через кому.
 const allowedOrigins = (process.env.CORS_ORIGINS || "")
 	.split(",")
 	.map((s) => s.trim())
@@ -113,11 +101,8 @@ const allowedOrigins = (process.env.CORS_ORIGINS || "")
 app.use(
 	cors({
 		origin: (origin, cb) => {
-			// Немає Origin (навігація браузером, curl, server-to-server) — дозволяємо.
 			if (!origin) return cb(null, true);
-			// Список не заданий (порожній CORS_ORIGINS) — застосунок на одному домені, дозволяємо.
 			if (allowedOrigins.length === 0) return cb(null, true);
-			// Список заданий — суворо за ним.
 			if (allowedOrigins.includes(origin)) return cb(null, true);
 			return cb(new Error("Not allowed by CORS"));
 		},
@@ -125,8 +110,7 @@ app.use(
 	})
 );
 
-// Серверні сесії — потрібні для зберігання факту проходження 1-го фактора
-// (щоб не тягати пароль через форму). У проді підключіть store (Redis), не MemoryStore.
+// Серверні сесії
 app.use(
 	session({
 		secret: process.env.SESSION_SECRET,
@@ -137,49 +121,52 @@ app.use(
 			httpOnly: true,
 			secure: process.env.NODE_ENV === "production",
 			sameSite: "strict",
-			maxAge: 10 * 60 * 1000, // pending-2FA живе недовго
+			maxAge: 10 * 60 * 1000,
 		},
 	})
 );
 
 // ─── НАЛАШТУВАННЯ ШАБЛОНІЗАТОРА ──────────────────────
-// Використовуємо EJS як шаблонізатор
 app.set("view engine", "ejs");
 
-// ─── ІНІЦІАЛІЗАЦІЯ СИСТЕМИ МОДУЛІВ ───────────────────
-// Ініціалізуємо менеджер модулів та завантажуємо всі модулі
-moduleManager.init(app);
-moduleManager.loadAllModules();
+// ═══════════════════════════════════════════════════════
+// ІНІЦІАЛІЗАЦІЯ СИСТЕМИ МОДУЛІВ
+// ВАЖЛИВО: Middleware реєструється СИНХРОННО, щоб hook() був доступний у шаблонах
+// ═══════════════════════════════════════════════════════
 
-// Додаємо middleware для хуків в шаблонах
+// 1. Ініціалізуємо менеджер
+moduleManager.init(app);
+
+// 2. Реєструємо middleware для хуків ОДРАЗУ (щоб res.locals.hook існував завжди)
 app.use(moduleManager.hooksMiddleware());
 
-// Реєструємо маршрути для керування модулями
+// 3. Реєструємо API для керування модулями
 app.use("/api/modules", require("./routes/modules/modules"));
+
+// 4. Асинхронно завантажуємо ТА АКТИВУЄМО всі модулі у фоні
+(async () => {
+	try {
+		console.log("[ModuleManager] Starting async module loading...");
+		await moduleManager.loadAllModules(true); // true = авто-активація
+		console.log("[ModuleManager] All modules loaded and enabled.");
+	} catch (error) {
+		console.error("[ModuleManager] Critical error during startup:", error);
+		// Не вбиваємо процес, якщо модулі не завантажились, щоб CRM працювала
+	}
+})();
 
 // ═══════════════════════════════════════════════════════
 // НАЛАШТУВАННЯ ІНТЕРНАЦІОНАЛІЗАЦІЇ ТА ЛОКАЛІЗАЦІЇ
 // ═══════════════════════════════════════════════════════
 
-// Ініціалізація i18n для багатомовності
 app.use(i18n.init);
-
-// Завантаження активних мов з бази даних
-// ВАЖЛИВО: Має бути перед маршрутами, щоб res.locals.languages був доступний
 app.use(loadLanguages);
 
 // ═══════════════════════════════════════════════════════
 // НАЛАШТУВАННЯ ПРАВ ДОСТУПУ
 // ═══════════════════════════════════════════════════════
 
-/**
- * Middleware для перевірки прав доступу
- * Додає функцію res.locals.can для використання в шаблонах
- * Приклад: res.locals.can('orders', 'edit')
- */
 app.use((req, res, next) => {
-	// Дефолт: доступу немає (deny by default). На захищених роутах
-	// isAuthenticated перезапише can() реальними правами користувача.
 	res.locals.can = () => false;
 	next();
 });
@@ -189,12 +176,9 @@ app.use((req, res, next) => {
 // ═══════════════════════════════════════════════════════
 
 // ─── АВТОРИЗАЦІЯ (ПЕРШОЮ — до всіх захищених роутів!) ─
-// Роутер входу має оброблятися раніше за захищені роути,
-// інакше /login/ перехоплюється й не відкривається.
 app.use("/", require("./routes/administrator/authorization/login/login"));
 
 // ─── КОРІНЬ: редирект залежно від автентифікації ─────
-// Не залогінений → на форму входу. Залогінений → на дашборд.
 const jwtRoot = require("jsonwebtoken");
 const cfgRoot = require("./config/config").get("configJWT");
 
@@ -203,7 +187,6 @@ app.get("/", (req, res, next) => {
 	if (!token) return res.redirect("/login/");
 	try {
 		jwtRoot.verify(token, cfgRoot.jwt.jwt_secret);
-		// Токен валідний — пускаємо далі, головну віддасть звичайний роут.
 		return next();
 	} catch {
 		res.clearCookie("access_token");
@@ -219,14 +202,13 @@ app.use("/", require("./routes/index/index"));
 app.use("/", require("./routes/orders/orders"));
 app.use(require("./routes/orders/tokens/tokens"));
 app.use(require("./routes/orders/integrations/integrations"));
-app.use(require("./routes/orders/receiver")); // Прийом замовлень із зовнішніх джерел
+app.use(require("./routes/orders/receiver"));
 
-// Контролери для відновлення черг при запуску
 const { recoverOnStartup } = require("./controllers/orders/inboxProcessor");
 const { recoverOutboxOnStartup } = require("./controllers/orders/outboxProcessor");
 const { recoverCartInboxOnStartup } = require("./controllers/orders/cartInboxProcessor");
 
-// ─── ПОКИНУТІ КОШИКИ (Abandoned Cart) ────────────────
+// ─── ПОКИНУТІ КОШИКИ ─────────────────────────────────
 app.use("/", require("./routes/customers/customers"));
 app.use("/", require("./routes/orders/abandoned-cart/abandoned-cart"));
 app.use("/", require("./routes/orders/abandoned-cart/services/services"));
@@ -262,14 +244,9 @@ app.use("/", require("./routes/settings/email/email"));
 // ОБРОБКА ПОМИЛОК
 // ═══════════════════════════════════════════════════════
 
-/**
- * Глобальний обробник помилок
- * Повинен бути останнім middleware
- */
 app.use((err, req, res, next) => {
 	console.error("Помилка:", err);
 
-	// API-запит — віддаємо JSON, не рендеримо EJS.
 	if (req.xhr || (req.headers.accept || "").indexOf("json") > -1) {
 		return res.status(err.status || 500).json({ status: "error", message: "Internal server error" });
 	}
@@ -282,8 +259,6 @@ app.use((err, req, res, next) => {
 			error: process.env.NODE_ENV === "development" ? err : {},
 		},
 		(renderErr, html) => {
-			// Якщо сам шаблон помилки впав (напр. немає i18n) — простий текст,
-			// щоб не було вторинного падіння, що маскує справжню причину.
 			if (renderErr) {
 				console.error("[ERROR PAGE RENDER FAILED]:", renderErr.message);
 				return res.status(err.status || 500).send("Internal Server Error");
@@ -293,7 +268,6 @@ app.use((err, req, res, next) => {
 	);
 });
 
-// ─── ОБРОБКА 404 (СТОРІНКУ НЕ ЗНАЙДЕНО) ─────────────
 app.use((req, res) => {
 	if (req.xhr || (req.headers.accept || "").indexOf("json") > -1) {
 		return res.status(404).json({ status: "error", message: "Not found" });
@@ -308,12 +282,8 @@ app.use((req, res) => {
 // НАЛАШТУВАННЯ CRON-ЗАДАЧ ТА АВТОМАТИЗАЦІЇ
 // ═══════════════════════════════════════════════════════
 
-// Імпорт функцій для аналітики
 const { rebuild, verify } = require("./cron/analytics/rebuildStats");
-
-// Імпорт функцій для нагадувань календаря
 const { tick: calendarReminderTick, cleanup: calendarReminderCleanup } = require("./cron/notifications/calendar-reminder-cron");
-
 const { refreshTick: igRefreshTick } = require("./cron/notifications/instagram-refresh-cron");
 
 // ═══════════════════════════════════════════════════════
@@ -324,7 +294,6 @@ server.listen(configServer.port, () => {
 	console.log("Сайт запущений.\nПорт: " + configServer.port);
 
 	// ─── ВІДНОВЛЕННЯ ЧЕРГ ПРИ ЗАПУСКУ ─────────────────
-	// Відновлення обробки повідомлень після перезапуску
 	recoverOnStartup();
 	recoverOutboxOnStartup();
 	recoverCartInboxOnStartup();
@@ -332,11 +301,6 @@ server.listen(configServer.port, () => {
 	// ─── АВТОМАТИЗАЦІЯ АНАЛІТИКИ ─────────────────────
 	let isAnalyticsRunning = false;
 
-	/**
-	 * Функція для запуску аналітики
-	 * @param {number} days - Кількість днів для аналізу
-	 * @param {string} label - Назва задачі для логування
-	 */
 	const runAnalytics = (days, label) => {
 		if (isAnalyticsRunning) {
 			return console.log(`[analytics] ${label}: пропущено, ще виконується`);
@@ -358,22 +322,16 @@ server.listen(configServer.port, () => {
 			});
 	};
 
-	// ─── ПЛАНУВАННЯ CRON-ЗАДАЧ ───────────────────────
-
-	// Запуск аналітики через 10 секунд після старту (початковий запуск)
 	setTimeout(() => runAnalytics(7, "startup"), 10000);
 
-	// Щогодини на 5-й хвилині
 	cron.schedule("5 * * * *", () => runAnalytics(7, "hourly"), {
 		timezone: "Europe/Kyiv",
 	});
 
-	// Щоденно о 03:20
 	cron.schedule("20 3 * * *", () => runAnalytics(45, "daily"), {
 		timezone: "Europe/Kyiv",
 	});
 
-	// Щодня о 04:30 — продовження IG-токенів
 	cron.schedule("30 4 * * *", () => igRefreshTick().catch((e) => console.error("[ig-refresh]", e)), {
 		timezone: "Europe/Kyiv",
 	});
@@ -381,7 +339,6 @@ server.listen(configServer.port, () => {
 	// ─── НАГАДУВАННЯ КАЛЕНДАРЯ ───────────────────────
 	let isReminderRunning = false;
 
-	// Щохвилини — розсилка нагадувань, що настали
 	cron.schedule(
 		"* * * * *",
 		async () => {
@@ -403,7 +360,6 @@ server.listen(configServer.port, () => {
 		}
 	);
 
-	// Щоденно о 04:10 — чистка відпрацьованих рядків черги
 	cron.schedule(
 		"10 4 * * *",
 		async () => {

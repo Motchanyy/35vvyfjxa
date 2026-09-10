@@ -16,8 +16,10 @@ const AUTO = {
 
 // Заготовки з дефолтами/підказками — користувач редагує тут
 const USER = {
+	NODE_ENV: { def: "production", hint: "Режим: production або development" },
 	PORT: { def: "3000", hint: "Порт сервера" },
 	APP_URL: { def: "", hint: "URL системи" },
+	CORS_ORIGINS: { def: "", hint: "Дозволені домени CORS через кому." },
 	DB_PREFIX: { def: "gc_", hint: "Префікс таблиць БД" },
 	INVITE_TTL_HOURS: { def: "72", hint: "Термін дії запрошення, годин" },
 	RESET_TTL_MINUTES: { def: "30", hint: "Термін дії скидання пароля, хвилин" },
