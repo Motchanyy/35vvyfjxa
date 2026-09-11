@@ -27,16 +27,33 @@
   function initLoader() {
     const D = 16, BTN = 52;
 
+    // ── Дочірні кнопки MFB-меню (розкриваються над MFB-кнопкою +/× при наведенні) ──
+    // Це окремі канали — НЕ чат. Чат викликає ліва кнопка.
+    // Кожен елемент: { label, href АБО onClick, bg, svg }. Порожній масив = без дочірніх кнопок.
+    const EXTRA_BUTTONS = [
+      { label: 'Подзвонити', href: 'tel:+380000000000', bg: '#4caf50',
+        svg: '<svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.7 21 3 13.3 3 3.9 3 3.4 3.4 3 4 3h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .7-.2 1l-2.3 2.2z"/></svg>' },
+      { label: 'Telegram', href: 'https://t.me/your_username', bg: '#29b6f6',
+        svg: '<svg viewBox="0 0 24 24"><path d="M9.8 15.6 9.6 19c.4 0 .6-.2.8-.4l1.9-1.8 3.9 2.9c.7.4 1.2.2 1.4-.7l2.6-12c.2-1-.3-1.5-1-1.2L3.5 10.2c-1 .4-1 .9-.2 1.2l4.2 1.3L17 6.6c.5-.3.9-.1.6.2l-7.8 8.8z"/></svg>' },
+      { label: 'Email', href: 'mailto:hello@example.com', bg: '#f4511e',
+        svg: '<svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>' },
+    ];
+
     const style = document.createElement('style');
     style.textContent = `
-      .lc-fab { position: fixed; bottom: 0; right: 0; width: ${BTN}px; height: ${BTN}px;
-                margin: ${D}px; color: #fff; background: ${BRAND_COLOR};
-                border: 0; cursor: pointer; z-index: 2147483001;
+      /* Док із двома кнопками в ряд: [чат] [MFB-тогл] */
+      #lc-dock { position: fixed; right: ${D}px; bottom: ${D}px; z-index: 2147483001;
+                 display: flex; align-items: flex-end; gap: 15px; }
+
+      /* Кнопки чату та закриття (у доці, у потоці) */
+      .lc-fab { position: relative; width: ${BTN}px; height: ${BTN}px; color: #fff;
+                background: ${BRAND_COLOR}; border: 0; cursor: pointer;
                 display: flex; align-items: center; justify-content: center;
+                box-shadow: 0 0 4px rgba(0,0,0,.14), 0 4px 8px rgba(0,0,0,.28);
                 transition: transform .15s ease; }
       .lc-fab:hover { transform: scale(1.06); }
       .lc-fab svg { width: 24px; height: 24px; fill: #fff; }
-      #lc-close { display: none; }  /* стає видимою на місці lc-open при відкритті */
+      #lc-close { display: none; }  /* показуємо замість кнопки чату при відкритті */
 
       #lc-badge { position: absolute; top: -2px; right: -2px; background: #e5342b; color: #fff;
                   min-width: 18px; height: 18px; font: 11px/18px 'Lato',sans-serif;
@@ -66,19 +83,106 @@
     `;
     document.head.appendChild(style);
 
-    // Кнопка відкриття
+    // ── Стилі MFB-кнопки (+/×) та її дочірніх кнопок ──
+    // Наведення на .mfb-component__wrap → іконка +/× перемикається, дочірні кнопки
+    // спливають угору. Зсув calc(var(--i) * -64px) — працює для будь-якої кількості.
+    const styleMfb = document.createElement('style');
+    styleMfb.textContent = `
+      .mfb-component__wrap { position: relative; display: inline-flex; }
+      .mfb-component__wrap.lc-busy { pointer-events: none; }   /* поки чат відкритий — меню не спливає */
+
+      .mfb-component__button--main { position: relative; width: ${BTN}px; height: ${BTN}px;
+        border: 0; padding: 0; margin: 0; background: ${BRAND_COLOR}; color: #fff; cursor: pointer;
+        z-index: 20; display: flex; align-items: center; justify-content: center; text-decoration: none;
+        box-shadow: 0 0 4px rgba(0,0,0,.14), 0 4px 8px rgba(0,0,0,.28);
+        transition: transform .15s ease; }
+      .mfb-component__button--main:hover { transform: scale(1.06); }
+
+      .mfb-component__main-icon--resting, .mfb-component__main-icon--active {
+        position: absolute; top: 50%; left: 50%; width: 24px; height: 24px; margin: -12px 0 0 -12px;
+        fill: #fff; transition: opacity .2s ease, transform .2s ease; }
+      .mfb-component__main-icon--active { opacity: 0; transform: rotate(-90deg); }
+      .mfb-component__wrap:hover .mfb-component__main-icon--resting { opacity: 0; transform: rotate(90deg); }
+      .mfb-component__wrap:hover .mfb-component__main-icon--active { opacity: 1; transform: rotate(0); }
+
+      .mfb-component__list { list-style: none; margin: 0; padding: 0;
+        position: absolute; left: 0; bottom: 0; width: ${BTN}px; }
+      .mfb-component__list > li { position: absolute; left: 0; bottom: 0; width: ${BTN}px;
+        padding: 8px 0; margin: -8px 0;                        /* зона наведення без розривів */
+        opacity: 0; transform: translateY(0) scale(0);
+        transition: transform .3s cubic-bezier(.4,0,.2,1), opacity .3s; }
+      .mfb-component__wrap:hover .mfb-component__list > li { opacity: 1;
+        transform: translateY(calc(var(--i) * -64px)) scale(1);
+        transition-delay: calc(var(--i) * .04s); }
+
+      .mfb-component__button--child { position: relative; display: flex; align-items: center;
+        justify-content: center; width: ${BTN}px; height: ${BTN}px; color: #fff; border: 0;
+        cursor: pointer; text-decoration: none;
+        box-shadow: 0 0 4px rgba(0,0,0,.14), 0 4px 8px rgba(0,0,0,.28);
+        transition: transform .15s ease; }
+      .mfb-component__button--child:hover { transform: scale(1.06); }
+      .mfb-component__button--child svg { width: 24px; height: 24px; fill: #fff; }
+      .mfb-component__button--child[data-label]::after { content: attr(data-label);
+        position: absolute; right: ${BTN + 12}px; top: 50%; transform: translateY(-50%);
+        white-space: nowrap; background: rgba(0,0,0,.72); color: #fff;
+        font: 12px/1 'Lato', sans-serif; padding: 6px 9px; border-radius: 4px;
+        opacity: 0; transition: opacity .2s; pointer-events: none; }
+      .mfb-component__wrap:hover .mfb-component__button--child[data-label]:hover::after { opacity: 1; }
+    `;
+    document.head.appendChild(styleMfb);
+
+    // Кнопка виклику чату (ліва)
     const openBtn = document.createElement('button');
     openBtn.id = 'lc-open'; openBtn.className = 'lc-fab'; openBtn.setAttribute('aria-label', 'Чат');
     openBtn.innerHTML = `
       <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
       <span id="lc-badge"></span>`;
-    document.body.appendChild(openBtn);
 
-    // Кнопка закриття — на тому ж місці (той самий margin), показуємо замість відкриття
+    // Кнопка закриття — на місці кнопки чату при відкритті
     const closeBtn = document.createElement('button');
     closeBtn.id = 'lc-close'; closeBtn.className = 'lc-fab'; closeBtn.setAttribute('aria-label', 'Закрити');
     closeBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3z"/></svg>`;
-    document.body.appendChild(closeBtn);
+
+    // MFB-кнопка (+/×) з дочірніми кнопками (права)
+    const mfbWrap = document.createElement('div');
+    mfbWrap.className = 'mfb-component__wrap';
+    const mainBtn = document.createElement('a');
+    mainBtn.href = '#';
+    mainBtn.className = 'mfb-component__button--main';
+    mainBtn.setAttribute('data-mfb-toggle', 'hover');
+    mainBtn.setAttribute('aria-label', 'Контакти');
+    mainBtn.innerHTML = `
+      <svg class="mfb-component__main-icon--resting" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      <svg class="mfb-component__main-icon--active" viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3z"/></svg>`;
+    mainBtn.addEventListener('click', (e) => e.preventDefault());   // це тогл меню, не перехід
+    mfbWrap.appendChild(mainBtn);
+
+    const mfbList = document.createElement('ul');
+    mfbList.className = 'mfb-component__list';
+    EXTRA_BUTTONS.forEach((b, i) => {
+      const li = document.createElement('li');
+      li.style.setProperty('--i', i + 1);                 // 1,2,3... → зсув calc(var(--i) * -64px)
+      const isLink = !!b.href;
+      const el = document.createElement(isLink ? 'a' : 'button');
+      el.className = 'mfb-component__button--child';
+      if (isLink) { el.href = b.href; el.target = '_blank'; el.rel = 'noopener'; }
+      if (b.label) el.setAttribute('data-label', b.label);
+      el.setAttribute('aria-label', b.label || 'Кнопка');
+      el.style.background = b.bg || BRAND_COLOR;
+      el.innerHTML = b.svg || '';
+      if (typeof b.onClick === 'function') el.addEventListener('click', b.onClick);
+      li.appendChild(el);
+      mfbList.appendChild(li);
+    });
+    mfbWrap.appendChild(mfbList);
+
+    // Док: дві кнопки в ряд ([чат/закрити] зліва, [MFB +/×] справа)
+    const dock = document.createElement('div');
+    dock.id = 'lc-dock';
+    dock.appendChild(openBtn);
+    dock.appendChild(closeBtn);
+    dock.appendChild(mfbWrap);
+    document.body.appendChild(dock);
 
     // iframe
     const panel = document.createElement('iframe');
@@ -104,11 +208,13 @@
     function open() {
       panel.classList.add('open'); isOpen = true; setBadge(0); post('lc:open');
       showClose();
+      mfbWrap.classList.add('lc-busy');        // поки чат відкритий — MFB-меню не спливає
     }
 
     function close() {
       panel.classList.remove('open'); isOpen = false; post('lc:close');
       showOpen();
+      mfbWrap.classList.remove('lc-busy');      // чат закрито — меню знову активне
       // .max знімаємо ПІСЛЯ анімації зникнення, щоб не було стрибка розміру
       if (maximized) {
         maximized = false;
