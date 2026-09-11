@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конструктор Віджета | CRM</title>
+
+    <link rel="stylesheet" href="/assets/css/admin-style.css">
+    <!-- ionicons — саме їх використовує MFB -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/nano.min.css"/>
+
+    <style>
+        :root { --widget-primary:#007bff; --widget-text:#ffffff; }
+        body { font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:#f4f6f9; margin:0; padding:0; }
+        .editor-container { display:flex; height:100vh; }
+
+        /* --- ЛІВА ПАНЕЛЬ --- */
+        .settings-panel { width:400px; background:#fff; border-right:1px solid #ddd; padding:20px; overflow-y:auto; box-shadow:2px 0 5px rgba(0,0,0,0.05); z-index:10; }
+        .settings-panel h2 { margin-top:0; color:#333; font-size:1.2rem; }
+        .form-group { margin-bottom:20px; }
+        .form-group label { display:block; margin-bottom:8px; font-weight:600; color:#555; font-size:0.9rem; }
+        .form-control { width:100%; padding:8px 12px; border:1px solid #ccc; border-radius:4px; font-size:14px; box-sizing:border-box; }
+        .color-picker-wrapper { height:40px; }
+        .btn { padding:8px 16px; border:none; border-radius:4px; cursor:pointer; font-weight:600; transition:0.2s; }
+        .btn-primary { background:#007bff; color:#fff; }
+        .btn-primary:hover { background:#0056b3; }
+        .btn-success { background:#28a745; color:#fff; width:100%; margin-top:20px; font-size:1rem; }
+        .btn-success:hover { background:#218838; }
+
+        .icon-selector { position:relative; cursor:pointer; }
+        .icon-preview { display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #ccc; border-radius:4px; background:#fff; }
+        .icon-preview i { font-size:1.3rem; color:#333; }
+        .icon-dropdown { position:absolute; top:100%; left:0; width:300px; background:#fff; border:1px solid #ddd; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:none; z-index:100; padding:10px; max-height:300px; overflow-y:auto; }
+        .icon-dropdown.active { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; }
+        .icon-option { text-align:center; padding:8px; cursor:pointer; border-radius:4px; font-size:1.3rem; color:#333; }
+        .icon-option:hover { background:#f0f0f0; }
+
+        .buttons-list { border:1px solid #eee; padding:10px; border-radius:4px; background:#fafafa; }
+        .button-item { display:flex; flex-direction:column; margin-bottom:12px; background:#fff; padding:8px; border:1px solid #ddd; border-radius:4px; }
+        .bi-top { display:flex; gap:6px; align-items:center; }
+        .bi-icon { width:34px; height:34px; flex:0 0 34px; display:flex; align-items:center; justify-content:center; border:1px solid #ddd; border-radius:4px; cursor:pointer; color:#333; font-size:1.2rem; }
+        .bi-icon:hover { background:#f0f0f0; }
+        .bi-link { flex:1; padding:5px 8px; }
+        .btn-remove { color:red; cursor:pointer; padding:5px; }
+        .bi-icons-dropdown { display:none; grid-template-columns:repeat(6,1fr); gap:4px; margin-top:8px; }
+        .bi-icons-dropdown.active { display:grid; }
+        .bi-colors { display:flex; align-items:center; gap:8px; margin-top:8px; }
+        .bi-clabel { font-size:12px; color:#666; }
+
+        /* --- ПРАВА ПАНЕЛЬ --- */
+        .preview-panel { flex:1; background:#e9ecef; position:relative; overflow:hidden; display:flex; justify-content:center; align-items:center; background-image:radial-gradient(#ccc 1px,transparent 1px); background-size:20px 20px; }
+        /* transform робить .mock-site контейнером для position:fixed самого віджета */
+        .mock-site { width:100%; height:100%; position:relative; transform:translateZ(0); background:#fff; box-shadow:0 0 20px rgba(0,0,0,0.1); overflow:hidden; }
+        .mock-header { height:60px; background:#333; color:#fff; display:flex; align-items:center; padding:0 20px; font-weight:bold; }
+        .mock-content { padding:40px; color:#777; }
+
+        /* ============================================================
+           MFB — СПРАВЖНІЙ CSS ВІДЖЕТА (без змін)
+           ============================================================ */
+        .mfb-component--tl{ animation:fromTop 1s 1; -webkit-animation:fromTop 1s 1; }
+        .mfb-component--tr{ animation:fromTop 1.3s 1; -webkit-animation:fromTop 1.3s 1; }
+        .mfb-component--br{ animation:fromBottom 1.6s 1; -webkit-animation:fromBottom 1.6s 1; }
+        .mfb-component--bl{ animation:fromBottom 1.9s 1; -webkit-animation:fromBottom 1.9s 1; }
+        @keyframes fromBottom { 0%{ transform:translateY(250px); } 100%{ transform:translateY(0); } }
+        @keyframes fromTop    { 0%{ transform:translateY(-250px); } 100%{ transform:translateY(0); } }
+
+        .mfb-component--tl, .mfb-component--tr, .mfb-component--bl, .mfb-component--br {
+          box-sizing:border-box; margin:25px; position:fixed; white-space:nowrap; z-index:30; padding-left:0; list-style:none; }
+        .mfb-component--tl *, .mfb-component--tr *, .mfb-component--bl *, .mfb-component--br *,
+        .mfb-component--tl *:before, .mfb-component--tr *:before, .mfb-component--bl *:before, .mfb-component--br *:before,
+        .mfb-component--tl *:after, .mfb-component--tr *:after, .mfb-component--bl *:after, .mfb-component--br *:after { box-sizing:inherit; }
+
+        .mfb-component--tl { left:0; top:0; }
+        .mfb-component--tr { right:0; top:0; }
+        .mfb-component--bl { left:0; bottom:0; }
+        .mfb-component--br { right:0; bottom:0; }
+
+        .mfb-component__button--main, .mfb-component__button--child {
+          background-color:#E40A5D; display:inline-block; position:relative; border:none; border-radius:50%;
+          box-shadow:0 0 4px rgba(0,0,0,0.14), 0 4px 8px rgba(0,0,0,0.28); cursor:pointer; outline:none; padding:0;
+          -webkit-user-drag:none; color:#f1f1f1; }
+
+        .mfb-component__list { list-style:none; margin:0; padding:0; }
+        .mfb-component__list > li { display:block; position:absolute; top:0; right:1px; padding:10px 0; margin:-10px 0; }
+
+        .mfb-component__icon, .mfb-component__main-icon--active, .mfb-component__main-icon--resting, .mfb-component__child-icon {
+          position:absolute; font-size:18px; text-align:center; line-height:56px; width:100%; }
+
+        .mfb-component__wrap { padding:25px; margin:-25px; }
+
+        [data-mfb-toggle="hover"]:hover .mfb-component__icon, [data-mfb-toggle="hover"]:hover .mfb-component__main-icon--active,
+        [data-mfb-toggle="hover"]:hover .mfb-component__main-icon--resting, [data-mfb-toggle="hover"]:hover .mfb-component__child-icon,
+        [data-mfb-state="open"] .mfb-component__icon, [data-mfb-state="open"] .mfb-component__main-icon--active,
+        [data-mfb-state="open"] .mfb-component__main-icon--resting, [data-mfb-state="open"] .mfb-component__child-icon {
+          -webkit-transform:scale(1) rotate(0deg); transform:scale(1) rotate(0deg); }
+
+        .mfb-component__button--main { height:56px; width:56px; z-index:20; }
+        .mfb-component__button--child { height:56px; width:56px; }
+
+        .mfb-component__main-icon--active, .mfb-component__main-icon--resting {
+          -webkit-transform:scale(1) rotate(360deg); transform:scale(1) rotate(360deg);
+          -webkit-transition:-webkit-transform 150ms cubic-bezier(0.4,0,1,1); transition:transform 150ms cubic-bezier(0.4,0,1,1); }
+        .mfb-component__child-icon { line-height:56px; font-size:18px; }
+        .mfb-component__main-icon--active { opacity:0; }
+
+        [data-mfb-toggle="hover"]:hover .mfb-component__main-icon, [data-mfb-state="open"] .mfb-component__main-icon {
+          -webkit-transform:scale(1) rotate(0deg); transform:scale(1) rotate(0deg); }
+        [data-mfb-toggle="hover"]:hover .mfb-component__main-icon--resting, [data-mfb-state="open"] .mfb-component__main-icon--resting {
+          opacity:0; position:absolute !important; }
+        [data-mfb-toggle="hover"]:hover .mfb-component__main-icon--active, [data-mfb-state="open"] .mfb-component__main-icon--active {
+          opacity:1; }
+
+        /* SLIDE IN */
+        .mfb-component--tl.mfb-slidein .mfb-component__list li, .mfb-component--tr.mfb-slidein .mfb-component__list li { opacity:0; transition:all 0.5s; }
+        .mfb-component--tl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li, .mfb-component--tl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li,
+        .mfb-component--tr.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li, .mfb-component--tr.mfb-slidein[data-mfb-state="open"] .mfb-component__list li { opacity:1; }
+        .mfb-component--tl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--tl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
+        .mfb-component--tr.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--tr.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(1) { transform:translateY(70px); }
+        .mfb-component--tl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--tl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
+        .mfb-component--tr.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--tr.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(2) { transform:translateY(140px); }
+        .mfb-component--tl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--tl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
+        .mfb-component--tr.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--tr.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(3) { transform:translateY(210px); }
+        .mfb-component--tl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--tl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
+        .mfb-component--tr.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--tr.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(4) { transform:translateY(280px); }
+        .mfb-component--bl.mfb-slidein .mfb-component__list li, .mfb-component--br.mfb-slidein .mfb-component__list li { opacity:0; transition:all 0.5s; }
+        .mfb-component--bl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li, .mfb-component--bl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li,
+        .mfb-component--br.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li, .mfb-component--br.mfb-slidein[data-mfb-state="open"] .mfb-component__list li { opacity:1; }
+        .mfb-component--bl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--bl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
+        .mfb-component--br.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--br.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(1) { transform:translateY(-70px); }
+        .mfb-component--bl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--bl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
+        .mfb-component--br.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--br.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(2) { transform:translateY(-140px); }
+        .mfb-component--bl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--bl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
+        .mfb-component--br.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--br.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(3) { transform:translateY(-210px); }
+        .mfb-component--bl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--bl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
+        .mfb-component--br.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--br.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(4) { transform:translateY(-280px); }
+
+        /* SLIDE IN SPRING */
+        .mfb-component--tl.mfb-slidein-spring .mfb-component__list li, .mfb-component--tr.mfb-slidein-spring .mfb-component__list li { opacity:0; transition:all 0.5s; transition-timing-function:cubic-bezier(0.68,-0.55,0.265,1.55); }
+        .mfb-component--tl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li, .mfb-component--tl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li,
+        .mfb-component--tr.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li, .mfb-component--tr.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li { opacity:1; }
+        .mfb-component--tl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--tl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
+        .mfb-component--tr.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--tr.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(1) { transition-delay:0.05s; transform:translateY(70px); }
+        .mfb-component--tl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--tl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
+        .mfb-component--tr.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--tr.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(2) { transition-delay:0.1s; transform:translateY(140px); }
+        .mfb-component--tl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--tl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
+        .mfb-component--tr.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--tr.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(3) { transition-delay:0.15s; transform:translateY(210px); }
+        .mfb-component--tl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--tl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
+        .mfb-component--tr.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--tr.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(4) { transition-delay:0.2s; transform:translateY(280px); }
+        .mfb-component--bl.mfb-slidein-spring .mfb-component__list li, .mfb-component--br.mfb-slidein-spring .mfb-component__list li { opacity:0; transition:all 0.5s; transition-timing-function:cubic-bezier(0.68,-0.55,0.265,1.55); }
+        .mfb-component--bl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li, .mfb-component--bl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li,
+        .mfb-component--br.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li, .mfb-component--br.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li { opacity:1; }
+        .mfb-component--bl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--bl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
+        .mfb-component--br.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--br.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(1) { transition-delay:0.05s; transform:translateY(-70px); }
+        .mfb-component--bl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--bl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
+        .mfb-component--br.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--br.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(2) { transition-delay:0.1s; transform:translateY(-140px); }
+        .mfb-component--bl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--bl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
+        .mfb-component--br.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--br.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(3) { transition-delay:0.15s; transform:translateY(-210px); }
+        .mfb-component--bl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--bl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
+        .mfb-component--br.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--br.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(4) { transition-delay:0.2s; transform:translateY(-280px); }
+
+        /* ZOOM-IN */
+        .mfb-component--tl.mfb-zoomin .mfb-component__list li, .mfb-component--tr.mfb-zoomin .mfb-component__list li { transform:scale(0); }
+        .mfb-component--tl.mfb-zoomin .mfb-component__list li:nth-child(1), .mfb-component--tr.mfb-zoomin .mfb-component__list li:nth-child(1) { transform:translateY(70px) scale(0); transition:all 0.5s; transition-delay:0.15s; }
+        .mfb-component--tl.mfb-zoomin .mfb-component__list li:nth-child(2), .mfb-component--tr.mfb-zoomin .mfb-component__list li:nth-child(2) { transform:translateY(140px) scale(0); transition:all 0.5s; transition-delay:0.1s; }
+        .mfb-component--tl.mfb-zoomin .mfb-component__list li:nth-child(3), .mfb-component--tr.mfb-zoomin .mfb-component__list li:nth-child(3) { transform:translateY(210px) scale(0); transition:all 0.5s; transition-delay:0.05s; }
+        .mfb-component--tl.mfb-zoomin .mfb-component__list li:nth-child(4), .mfb-component--tr.mfb-zoomin .mfb-component__list li:nth-child(4) { transform:translateY(280px) scale(0); transition:all 0.5s; transition-delay:0s; }
+        .mfb-component--tl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--tl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
+        .mfb-component--tr.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--tr.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(1) { transform:translateY(70px) scale(1); transition-delay:0.05s; }
+        .mfb-component--tl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--tl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
+        .mfb-component--tr.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--tr.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(2) { transform:translateY(140px) scale(1); transition-delay:0.1s; }
+        .mfb-component--tl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--tl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
+        .mfb-component--tr.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--tr.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(3) { transform:translateY(210px) scale(1); transition-delay:0.15s; }
+        .mfb-component--tl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--tl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
+        .mfb-component--tr.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--tr.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(4) { transform:translateY(280px) scale(1); transition-delay:0.2s; }
+        .mfb-component--bl.mfb-zoomin .mfb-component__list li, .mfb-component--br.mfb-zoomin .mfb-component__list li { transform:scale(0); }
+        .mfb-component--bl.mfb-zoomin .mfb-component__list li:nth-child(1), .mfb-component--br.mfb-zoomin .mfb-component__list li:nth-child(1) { transform:translateY(-70px) scale(0); transition:all 0.5s; transition-delay:0.15s; }
+        .mfb-component--bl.mfb-zoomin .mfb-component__list li:nth-child(2), .mfb-component--br.mfb-zoomin .mfb-component__list li:nth-child(2) { transform:translateY(-140px) scale(0); transition:all 0.5s; transition-delay:0.1s; }
+        .mfb-component--bl.mfb-zoomin .mfb-component__list li:nth-child(3), .mfb-component--br.mfb-zoomin .mfb-component__list li:nth-child(3) { transform:translateY(-210px) scale(0); transition:all 0.5s; transition-delay:0.05s; }
+        .mfb-component--bl.mfb-zoomin .mfb-component__list li:nth-child(4), .mfb-component--br.mfb-zoomin .mfb-component__list li:nth-child(4) { transform:translateY(-280px) scale(0); transition:all 0.5s; transition-delay:0s; }
+        .mfb-component--bl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--bl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
+        .mfb-component--br.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--br.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(1) { transform:translateY(-70px) scale(1); transition-delay:0.05s; }
+        .mfb-component--bl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--bl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
+        .mfb-component--br.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--br.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(2) { transform:translateY(-140px) scale(1); transition-delay:0.1s; }
+        .mfb-component--bl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--bl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
+        .mfb-component--br.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--br.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(3) { transform:translateY(-210px) scale(1); transition-delay:0.15s; }
+        .mfb-component--bl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--bl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
+        .mfb-component--br.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--br.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(4) { transform:translateY(-280px) scale(1); transition-delay:0.2s; }
+
+        /* FOUNTAIN */
+        .mfb-component--tl.mfb-fountain .mfb-component__list li, .mfb-component--tr.mfb-fountain .mfb-component__list li { transform:scale(0); }
+        .mfb-component--tl.mfb-fountain .mfb-component__list li:nth-child(1), .mfb-component--tr.mfb-fountain .mfb-component__list li:nth-child(1) { transform:translateY(-70px) scale(0); transition:all 0.5s; transition-delay:0.15s; }
+        .mfb-component--tl.mfb-fountain .mfb-component__list li:nth-child(2), .mfb-component--tr.mfb-fountain .mfb-component__list li:nth-child(2) { transform:translateY(-140px) scale(0); transition:all 0.5s; transition-delay:0.1s; }
+        .mfb-component--tl.mfb-fountain .mfb-component__list li:nth-child(3), .mfb-component--tr.mfb-fountain .mfb-component__list li:nth-child(3) { transform:translateY(-210px) scale(0); transition:all 0.5s; transition-delay:0.05s; }
+        .mfb-component--tl.mfb-fountain .mfb-component__list li:nth-child(4), .mfb-component--tr.mfb-fountain .mfb-component__list li:nth-child(4) { transform:translateY(-280px) scale(0); transition:all 0.5s; transition-delay:0s; }
+        .mfb-component--tl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--tl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
+        .mfb-component--tr.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--tr.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(1) { transform:translateY(70px) scale(1); transition-delay:0.05s; }
+        .mfb-component--tl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--tl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
+        .mfb-component--tr.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--tr.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(2) { transform:translateY(140px) scale(1); transition-delay:0.1s; }
+        .mfb-component--tl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--tl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
+        .mfb-component--tr.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--tr.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(3) { transform:translateY(210px) scale(1); transition-delay:0.15s; }
+        .mfb-component--tl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--tl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
+        .mfb-component--tr.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--tr.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(4) { transform:translateY(280px) scale(1); transition-delay:0.2s; }
+        .mfb-component--bl.mfb-fountain .mfb-component__list li, .mfb-component--br.mfb-fountain .mfb-component__list li { transform:scale(0); }
+        .mfb-component--bl.mfb-fountain .mfb-component__list li:nth-child(1), .mfb-component--br.mfb-fountain .mfb-component__list li:nth-child(1) { transform:translateY(70px) scale(0); transition:all 0.5s; transition-delay:0.15s; }
+        .mfb-component--bl.mfb-fountain .mfb-component__list li:nth-child(2), .mfb-component--br.mfb-fountain .mfb-component__list li:nth-child(2) { transform:translateY(140px) scale(0); transition:all 0.5s; transition-delay:0.1s; }
+        .mfb-component--bl.mfb-fountain .mfb-component__list li:nth-child(3), .mfb-component--br.mfb-fountain .mfb-component__list li:nth-child(3) { transform:translateY(210px) scale(0); transition:all 0.5s; transition-delay:0.05s; }
+        .mfb-component--bl.mfb-fountain .mfb-component__list li:nth-child(4), .mfb-component--br.mfb-fountain .mfb-component__list li:nth-child(4) { transform:translateY(280px) scale(0); transition:all 0.5s; transition-delay:0s; }
+        .mfb-component--bl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--bl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
+        .mfb-component--br.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1), .mfb-component--br.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(1) { transform:translateY(-70px) scale(1); transition-delay:0.05s; }
+        .mfb-component--bl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--bl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
+        .mfb-component--br.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2), .mfb-component--br.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(2) { transform:translateY(-140px) scale(1); transition-delay:0.1s; }
+        .mfb-component--bl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--bl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
+        .mfb-component--br.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3), .mfb-component--br.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(3) { transform:translateY(-210px) scale(1); transition-delay:0.15s; }
+        .mfb-component--bl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--bl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
+        .mfb-component--br.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4), .mfb-component--br.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(4) { transform:translateY(-280px) scale(1); transition-delay:0.2s; }
+
+        /* LABELS */
+        [data-mfb-label]:after { content:attr(data-mfb-label); opacity:0; transition:all 0.5s; background:rgba(0,0,0,0.4); padding:4px 10px; border-radius:3px; color:rgba(255,255,255,0.8); font-size:14px; font-weight:normal; pointer-events:none; line-height:normal; position:absolute; top:50%; margin-top:-11px; }
+        [data-mfb-toggle="hover"] [data-mfb-label]:hover:after, [data-mfb-state="open"] [data-mfb-label]:after { content:attr(data-mfb-label); opacity:1; transition:all 0.3s; }
+        .mfb-component--br [data-mfb-label]:after, .mfb-component--tr [data-mfb-label]:after,
+        .mfb-component--br .mfb-component__list [data-mfb-label]:after, .mfb-component--tr .mfb-component__list [data-mfb-label]:after { content:attr(data-mfb-label); right:70px; }
+        .mfb-component--tl [data-mfb-label]:after, .mfb-component--bl [data-mfb-label]:after,
+        .mfb-component--tl .mfb-component__list [data-mfb-label]:after, .mfb-component--bl .mfb-component__list [data-mfb-label]:after { content:attr(data-mfb-label); left:70px; }
+
+        /* Modal */
+        .code-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center; }
+        .code-content { background:#fff; padding:20px; border-radius:8px; width:500px; }
+        .code-content textarea { width:100%; height:150px; font-family:monospace; margin:10px 0; }
+    </style>
+</head>
+<body>
+
+<div class="editor-container">
+    <!-- ЛІВА ПАНЕЛЬ -->
+    <div class="settings-panel">
+        <h2><i class="ion-android-options"></i> Налаштування віджета</h2>
+
+        <div class="form-group">
+            <label>Назва віджета (Site ID)</label>
+            <input type="text" id="widgetName" class="form-control" value="my-shop-123">
+        </div>
+
+        <div class="form-group">
+            <label>Основний колір</label>
+            <div class="color-picker-wrapper"><div id="colorPicker"></div></div>
+        </div>
+
+        <div class="form-group">
+            <label>Колір тексту/іконки</label>
+            <div class="color-picker-wrapper"><div id="textColorPicker"></div></div>
+        </div>
+
+        <div class="form-group">
+            <label>Позиція на екрані</label>
+            <select id="positionSelect" class="form-control">
+                <option value="bottom-right">Нижній правий кут</option>
+                <option value="bottom-left">Нижній лівий кут</option>
+                <option value="top-right">Верхній правий кут</option>
+                <option value="top-left">Верхній лівий кут</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Тип анімації</label>
+            <select id="animationSelect" class="form-control">
+                <option value="zoom">Zoom in</option>
+                <option value="slide">Slide in</option>
+                <option value="spring">Slide in (spring)</option>
+                <option value="fountain">Fountain</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Відступи (X / Y)</label>
+            <div style="display:flex; gap:10px;">
+                <input type="number" id="offsetX" class="form-control" value="25" min="0">
+                <input type="number" id="offsetY" class="form-control" value="25" min="0">
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="form-group">
+            <label>Головна іконка</label>
+            <div class="icon-selector" onclick="toggleIconPicker('mainIconPicker')">
+                <div class="icon-preview">
+                    <i id="currentMainIcon" class="ion-plus-round"></i>
+                    <span>Змінити іконку</span>
+                </div>
+                <div id="mainIconPicker" class="icon-dropdown"></div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Додаткові кнопки (Меню)</label>
+            <div class="buttons-list" id="buttonsList"></div>
+            <button class="btn btn-primary" style="margin-top:10px; width:100%" onclick="addNewButton()">+ Додати кнопку</button>
+        </div>
+
+        <button class="btn btn-success" onclick="generateCode()"><i class="ion-code"></i> Зберегти та отримати код</button>
+    </div>
+
+    <!-- ПРАВА ПАНЕЛЬ -->
+    <div class="preview-panel">
+        <div class="mock-site">
+            <div class="mock-header">Сайт Клієнта (Demo)</div>
+            <div class="mock-content">
+                <h1>Ласкаво просимо!</h1>
+                <p>Наведіть на кнопку віджета, щоб побачити розкриття меню.</p>
+                <p>Змінюйте колір, позицію, анімацію або додавайте кнопки зліва.</p>
+            </div>
+
+            <!-- КОРІНЬ ВІДЖЕТА MFB (клас позиції+анімації і вміст генерує JS) -->
+            <ul id="menu" data-mfb-toggle="hover"></ul>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛЬНЕ ВІКНО КОДУ -->
+<div class="code-modal" id="codeModal">
+    <div class="code-content">
+        <h3>Код для вставки на сайт</h3>
+        <p>Скопіюйте цей код та вставте перед закриваючим тегом <code>&lt;/body&gt;</code>.</p>
+        <textarea id="generatedCodeArea" readonly></textarea>
+        <div style="text-align:right;">
+            <button class="btn" onclick="document.getElementById('codeModal').style.display='none'">Закрити</button>
+            <button class="btn btn-primary" onclick="copyCode()">Копіювати</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
+<script>
+    // --- СТАН ---
+    let config = {
+        primaryColor: '#007bff',
+        textColor: '#ffffff',
+        position: 'bottom-right',
+        animation: 'zoom',
+        offsetX: 25,
+        offsetY: 25,
+        mainIcon: 'ion-plus-round',
+        buttons: [
+            { icon:'ion-social-whatsapp', link:'https://wa.me/1234567890', label:'WhatsApp', color:'#25D366', iconColor:'#ffffff' },
+            { icon:'ion-paper-airplane',  link:'https://t.me/username',    label:'Telegram', color:'#0088cc', iconColor:'#ffffff' }
+        ]
+    };
+
+    // мапінг у справжні класи MFB
+    const POS_CLASS = { 'bottom-right':'mfb-component--br', 'bottom-left':'mfb-component--bl', 'top-right':'mfb-component--tr', 'top-left':'mfb-component--tl' };
+    const FX_CLASS  = { 'zoom':'mfb-zoomin', 'slide':'mfb-slidein', 'spring':'mfb-slidein-spring', 'fountain':'mfb-fountain' };
+
+    const menu = document.getElementById('menu');
+    let buttonPickrs = [];
+    const SWATCHES = ['#007bff','#28a745','#dc3545','#ffc107','#17a2b8','#6f42c1','#25D366','#0088cc','#ffffff','#333333'];
+
+    // набір ionicons для вибору
+    const iconsList = [
+        'ion-plus-round','ion-chatbubbles','ion-chatbox-working','ion-headphone','ion-person','ion-email',
+        'ion-ios-telephone','ion-social-whatsapp','ion-paper-airplane','ion-social-facebook','ion-ios-cart',
+        'ion-help-circled','ion-information-circled','ion-ios-star','ion-ios-heart','ion-location'
+    ];
+
+    // --- PICKR (глобальні кольори) ---
+    const initPickr = (elementId, defaultColor, callback) => Pickr.create({
+        el: elementId, theme:'nano', default:defaultColor, swatches:SWATCHES,
+        components:{ preview:true, opacity:true, hue:true, interaction:{ input:true, save:false } }
+    }).on('change', color => callback(color.toHEXA().toString()));
+
+    initPickr('#colorPicker', config.primaryColor, c => { config.primaryColor = c; buildInner(); });
+    initPickr('#textColorPicker', config.textColor, c => { config.textColor = c; buildInner(); });
+
+    function createInlinePickr(el, defaultColor, onChange) {
+        return Pickr.create({
+            el: el, theme:'nano', default:defaultColor || '#ffffff', swatches:SWATCHES,
+            components:{ preview:true, opacity:true, hue:true, interaction:{ input:true, save:false } }
+        }).on('change', color => onChange(color.toHEXA().toString()));
+    }
+
+    // --- РЕНДЕР ВІДЖЕТА (справжня структура MFB) ---
+    function buildInner() {
+        let childrenHtml = '';
+        config.buttons.forEach(btn => {
+            const bg = btn.color || config.primaryColor;
+            const ic = btn.iconColor || config.textColor;
+            childrenHtml += `
+                <li>
+                    <a href="${btn.link}" data-mfb-label="${(btn.label||'').replace(/"/g,'&quot;')}" class="mfb-component__button--child" style="background-color:${bg}; color:${ic};">
+                        <i class="mfb-component__child-icon ${btn.icon}"></i>
+                    </a>
+                </li>`;
+        });
+
+        menu.innerHTML = `
+            <li class="mfb-component__wrap">
+                <a href="#" class="mfb-component__button--main" style="background-color:${config.primaryColor}; color:${config.textColor};">
+                    <i class="mfb-component__main-icon--resting ${config.mainIcon}"></i>
+                    <i class="mfb-component__main-icon--active ion-close-round"></i>
+                </a>
+                <ul class="mfb-component__list">${childrenHtml}</ul>
+            </li>`;
+
+        applyClass();
+    }
+
+    function applyClass() {
+        menu.className = POS_CLASS[config.position] + ' ' + FX_CLASS[config.animation];
+        menu.style.margin = config.offsetY + 'px ' + config.offsetX + 'px';
+    }
+
+    // Перезапуск появи кнопки — прийом з демо MFB (display none -> block)
+    function renderMenu() {
+        menu.style.display = 'none';
+        setTimeout(function(){ menu.style.display = 'block'; applyClass(); }, 1);
+    }
+
+    // --- СПИСОК КНОПОК ---
+    function addNewButton() {
+        config.buttons.push({ icon:'ion-link', link:'https://example.com', label:'Кнопка', color:config.primaryColor, iconColor:config.textColor });
+        renderButtonsListEditor();
+        buildInner();
+    }
+    function removeButton(index) {
+        config.buttons.splice(index, 1);
+        renderButtonsListEditor();
+        buildInner();
+    }
+
+    function renderButtonsListEditor() {
+        buttonPickrs.forEach(p => { try { p.destroyAndRemove(); } catch(e){} });
+        buttonPickrs = [];
+
+        const list = document.getElementById('buttonsList');
+        list.innerHTML = '';
+
+        config.buttons.forEach((btn, index) => {
+            const item = document.createElement('div');
+            item.className = 'button-item';
+            item.innerHTML = `
+                <div class="bi-top">
+                    <div class="bi-icon" title="Змінити іконку"><i class="${btn.icon}"></i></div>
+                    <input type="text" class="form-control bi-link" value="${btn.link}" placeholder="Посилання">
+                    <i class="ion-trash-a btn-remove" title="Видалити"></i>
+                </div>
+                <input type="text" class="form-control" style="margin-top:6px" value="${(btn.label||'').replace(/"/g,'&quot;')}" placeholder="Підпис (label)">
+                <div class="bi-icons-dropdown"></div>
+                <div class="bi-colors">
+                    <span class="bi-clabel">Фон</span><div class="bi-pickr-bg"></div>
+                    <span class="bi-clabel">Іконка</span><div class="bi-pickr-ic"></div>
+                </div>`;
+            list.appendChild(item);
+
+            item.querySelector('.bi-link').addEventListener('change', e => { config.buttons[index].link = e.target.value; buildInner(); });
+            item.querySelectorAll('input')[1].addEventListener('input', e => { config.buttons[index].label = e.target.value; buildInner(); });
+            item.querySelector('.btn-remove').addEventListener('click', () => removeButton(index));
+
+            const iconBox = item.querySelector('.bi-icon');
+            const dd = item.querySelector('.bi-icons-dropdown');
+            iconBox.addEventListener('click', () => dd.classList.toggle('active'));
+            iconsList.forEach(ic => {
+                const opt = document.createElement('div');
+                opt.className = 'icon-option';
+                opt.innerHTML = `<i class="${ic}"></i>`;
+                opt.onclick = () => { config.buttons[index].icon = ic; renderButtonsListEditor(); buildInner(); };
+                dd.appendChild(opt);
+            });
+
+            buttonPickrs.push(createInlinePickr(item.querySelector('.bi-pickr-bg'), btn.color || config.primaryColor,
+                val => { config.buttons[index].color = val; buildInner(); }));
+            buttonPickrs.push(createInlinePickr(item.querySelector('.bi-pickr-ic'), btn.iconColor || config.textColor,
+                val => { config.buttons[index].iconColor = val; buildInner(); }));
+        });
+    }
+
+    // --- ГОЛОВНА ІКОНКА ---
+    function initIconPicker() {
+        const container = document.getElementById('mainIconPicker');
+        iconsList.forEach(ic => {
+            const div = document.createElement('div');
+            div.className = 'icon-option';
+            div.innerHTML = `<i class="${ic}"></i>`;
+            div.onclick = () => {
+                config.mainIcon = ic;
+                document.getElementById('currentMainIcon').className = ic;
+                toggleIconPicker('mainIconPicker');
+                buildInner();
+            };
+            container.appendChild(div);
+        });
+    }
+    function toggleIconPicker(id) { document.getElementById(id).classList.toggle('active'); }
+
+    // --- СЛУХАЧІ ---
+    document.getElementById('positionSelect').addEventListener('change', e => { config.position = e.target.value; renderMenu(); });
+    document.getElementById('animationSelect').addEventListener('change', e => { config.animation = e.target.value; renderMenu(); });
+    document.getElementById('offsetX').addEventListener('input', e => { config.offsetX = e.target.value; applyClass(); });
+    document.getElementById('offsetY').addEventListener('input', e => { config.offsetY = e.target.value; applyClass(); });
+
+    // --- ГЕНЕРАЦІЯ КОДУ ---
+    function generateCode() {
+        const siteId = document.getElementById('widgetName').value.replace(/\s+/g, '-').toLowerCase();
+        const jsonConfig = JSON.stringify({
+            primaryColor: config.primaryColor, textColor: config.textColor,
+            position: config.position, animation: config.animation,
+            offsetX: config.offsetX, offsetY: config.offsetY,
+            mainIcon: config.mainIcon, buttons: config.buttons
+        });
+        const code = `
+<!-- GrowthContour Chat Widget -->
+<script>
+    window.GCWidgetConfig = window.GCWidgetConfig || {};
+    window.GCWidgetConfig['${siteId}'] = ${jsonConfig};
+
+    (function(w,d,s,u){
+        var js = d.createElement(s); js.async = true; js.src = u;
+        var first = d.getElementsByTagName(s)[0];
+        first.parentNode.insertBefore(js, first);
+    })(window, document, 'script', 'https://demo.growthcontour.com/chat/widget.js');
+<\/script>
+<!-- End GrowthContour Chat Widget -->`.trim();
+
+        document.getElementById('generatedCodeArea').value = code;
+        document.getElementById('codeModal').style.display = 'flex';
+    }
+    function copyCode() {
+        const t = document.getElementById('generatedCodeArea');
+        t.select(); document.execCommand('copy'); alert('Код скопійовано!');
+    }
+
+    // --- ЗАПУСК ---
+    initIconPicker();
+    renderButtonsListEditor();
+    buildInner();
+    renderMenu();
+</script>
+
+</body>
+</html>
