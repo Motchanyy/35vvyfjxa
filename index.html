@@ -148,7 +148,6 @@
     /* MFB Styles */
     .mfb-component--tl, .mfb-component--tr, .mfb-component--bl, .mfb-component--br {
       box-sizing: border-box;
-      margin: 25px;
       position: fixed;
       white-space: nowrap;
       z-index: 30;
@@ -163,7 +162,7 @@
     .mfb-component--tl { left: 0; top: 0; }
     .mfb-component--tr { right: 0; top: 0; }
     .mfb-component--bl { left: 0; bottom: 0; }
-    .mfb-component--br { right: 0; bottom: 0; }
+    .mfb-component--br { right: 15px; bottom: 15px; }
 
     .mfb-component__button--main, .mfb-component__button--child {
       background-color: #E40A5D;
@@ -200,10 +199,13 @@
       width: 100%;
     }
     .mfb-component__wrap {
-      padding: 25px;
-      margin: -25px;
+	  display: inline-block;
     }
-    [data-mfb-toggle="hover"]:hover .mfb-component__icon,
+	#menu button {
+	height: 56px;width: 56px;background-color: #E40A5D;border: none;border-radius: 50%;box-shadow: 0 0 4px rgba(0,0,0,0.14), 0 4px 8px rgba(0,0,0,0.28);cursor: pointer;outline: none;padding: 0;color: #f1f1f1;display: inline-block;margin-right: 15px;
+	}
+    .mfb-component__button--main[data-mfb-toggle="hover"]:hover .mfb-component__icon,
+    .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] .mfb-component__icon,
     [data-mfb-state="open"] .mfb-component__icon {
       transform: scale(1) rotate(0deg);
     }
@@ -228,16 +230,19 @@
     .mfb-component__main-icon--active {
       opacity: 0;
     }
-    [data-mfb-toggle="hover"]:hover .mfb-component__main-icon,
+    .mfb-component__button--main[data-mfb-toggle="hover"]:hover .mfb-component__main-icon,
+    .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] .mfb-component__main-icon,
     [data-mfb-state="open"] .mfb-component__main-icon {
       transform: scale(1) rotate(0deg);
     }
-    [data-mfb-toggle="hover"]:hover .mfb-component__main-icon--resting,
+    .mfb-component__button--main[data-mfb-toggle="hover"]:hover .mfb-component__main-icon--resting,
+    .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] .mfb-component__main-icon--resting,
     [data-mfb-state="open"] .mfb-component__main-icon--resting {
       opacity: 0;
       position: absolute !important;
     }
-    [data-mfb-toggle="hover"]:hover .mfb-component__main-icon--active,
+    .mfb-component__button--main[data-mfb-toggle="hover"]:hover .mfb-component__main-icon--active,
+    .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] .mfb-component__main-icon--active,
     [data-mfb-state="open"] .mfb-component__main-icon--active {
       opacity: 1;
     }
@@ -248,33 +253,33 @@
       opacity: 0;
       transition: all 0.5s;
     }
-    .mfb-component--tl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li,
+    .mfb-component--tl.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li,
     .mfb-component--tl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li,
-    .mfb-component--tr.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li,
+    .mfb-component--tr.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li,
     .mfb-component--tr.mfb-slidein[data-mfb-state="open"] .mfb-component__list li {
       opacity: 1;
     }
-    .mfb-component--tl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--tl.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--tl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
-    .mfb-component--tr.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--tr.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--tr.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(1) {
       transform: translateY(70px);
     }
-    .mfb-component--tl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--tl.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--tl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
-    .mfb-component--tr.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--tr.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--tr.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(2) {
       transform: translateY(140px);
     }
-    .mfb-component--tl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--tl.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--tl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
-    .mfb-component--tr.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--tr.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--tr.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(3) {
       transform: translateY(210px);
     }
-    .mfb-component--tl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--tl.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--tl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
-    .mfb-component--tr.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--tr.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--tr.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(4) {
       transform: translateY(280px);
     }
@@ -283,33 +288,33 @@
       opacity: 0;
       transition: all 0.5s;
     }
-    .mfb-component--bl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li,
+    .mfb-component--bl.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li,
     .mfb-component--bl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li,
-    .mfb-component--br.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li,
+    .mfb-component--br.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li,
     .mfb-component--br.mfb-slidein[data-mfb-state="open"] .mfb-component__list li {
       opacity: 1;
     }
-    .mfb-component--bl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--bl.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--bl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
-    .mfb-component--br.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--br.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--br.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(1) {
       transform: translateY(-70px);
     }
-    .mfb-component--bl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--bl.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--bl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
-    .mfb-component--br.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--br.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--br.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(2) {
       transform: translateY(-140px);
     }
-    .mfb-component--bl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--bl.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--bl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
-    .mfb-component--br.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--br.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--br.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(3) {
       transform: translateY(-210px);
     }
-    .mfb-component--bl.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--bl.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--bl.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
-    .mfb-component--br.mfb-slidein[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--br.mfb-slidein .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--br.mfb-slidein[data-mfb-state="open"] .mfb-component__list li:nth-child(4) {
       transform: translateY(-280px);
     }
@@ -328,31 +333,31 @@
     .mfb-component--tr.mfb-slidein-spring .mfb-component__list li:nth-child(3) { transition-delay: 0.15s; }
     .mfb-component--tl.mfb-slidein-spring .mfb-component__list li:nth-child(4),
     .mfb-component--tr.mfb-slidein-spring .mfb-component__list li:nth-child(4) { transition-delay: 0.2s; }
-    .mfb-component--tl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li,
+    .mfb-component--tl.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li,
     .mfb-component--tl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li,
-    .mfb-component--tr.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li,
+    .mfb-component--tr.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li,
     .mfb-component--tr.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li { opacity: 1; }
-    .mfb-component--tl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--tl.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--tl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
-    .mfb-component--tr.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--tr.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--tr.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(1) {
       transition-delay: 0.05s; transform: translateY(70px);
     }
-    .mfb-component--tl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--tl.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--tl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
-    .mfb-component--tr.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--tr.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--tr.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(2) {
       transition-delay: 0.1s; transform: translateY(140px);
     }
-    .mfb-component--tl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--tl.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--tl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
-    .mfb-component--tr.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--tr.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--tr.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(3) {
       transition-delay: 0.15s; transform: translateY(210px);
     }
-    .mfb-component--tl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--tl.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--tl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
-    .mfb-component--tr.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--tr.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--tr.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(4) {
       transition-delay: 0.2s; transform: translateY(280px);
     }
@@ -370,31 +375,31 @@
     .mfb-component--br.mfb-slidein-spring .mfb-component__list li:nth-child(3) { transition-delay: 0.15s; }
     .mfb-component--bl.mfb-slidein-spring .mfb-component__list li:nth-child(4),
     .mfb-component--br.mfb-slidein-spring .mfb-component__list li:nth-child(4) { transition-delay: 0.2s; }
-    .mfb-component--bl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li,
+    .mfb-component--bl.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li,
     .mfb-component--bl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li,
-    .mfb-component--br.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li,
+    .mfb-component--br.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li,
     .mfb-component--br.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li { opacity: 1; }
-    .mfb-component--bl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--bl.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--bl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
-    .mfb-component--br.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--br.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--br.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(1) {
       transition-delay: 0.05s; transform: translateY(-70px);
     }
-    .mfb-component--bl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--bl.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--bl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
-    .mfb-component--br.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--br.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--br.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(2) {
       transition-delay: 0.1s; transform: translateY(-140px);
     }
-    .mfb-component--bl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--bl.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--bl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
-    .mfb-component--br.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--br.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--br.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(3) {
       transition-delay: 0.15s; transform: translateY(-210px);
     }
-    .mfb-component--bl.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--bl.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--bl.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
-    .mfb-component--br.mfb-slidein-spring[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--br.mfb-slidein-spring .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--br.mfb-slidein-spring[data-mfb-state="open"] .mfb-component__list li:nth-child(4) {
       transition-delay: 0.2s; transform: translateY(-280px);
     }
@@ -420,27 +425,27 @@
     .mfb-component--tr.mfb-zoomin .mfb-component__list li:nth-child(4) {
       transform: translateY(280px) scale(0); transition: all 0.5s; transition-delay: 0s;
     }
-    .mfb-component--tl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--tl.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--tl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
-    .mfb-component--tr.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--tr.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--tr.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(1) {
       transform: translateY(70px) scale(1); transition-delay: 0.05s;
     }
-    .mfb-component--tl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--tl.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--tl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
-    .mfb-component--tr.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--tr.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--tr.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(2) {
       transform: translateY(140px) scale(1); transition-delay: 0.1s;
     }
-    .mfb-component--tl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--tl.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--tl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
-    .mfb-component--tr.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--tr.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--tr.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(3) {
       transform: translateY(210px) scale(1); transition-delay: 0.15s;
     }
-    .mfb-component--tl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--tl.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--tl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
-    .mfb-component--tr.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--tr.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--tr.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(4) {
       transform: translateY(280px) scale(1); transition-delay: 0.2s;
     }
@@ -464,27 +469,27 @@
     .mfb-component--br.mfb-zoomin .mfb-component__list li:nth-child(4) {
       transform: translateY(-280px) scale(0); transition: all 0.5s; transition-delay: 0s;
     }
-    .mfb-component--bl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--bl.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--bl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
-    .mfb-component--br.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--br.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--br.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(1) {
       transform: translateY(-70px) scale(1); transition-delay: 0.05s;
     }
-    .mfb-component--bl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--bl.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--bl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
-    .mfb-component--br.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--br.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--br.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(2) {
       transform: translateY(-140px) scale(1); transition-delay: 0.1s;
     }
-    .mfb-component--bl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--bl.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--bl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
-    .mfb-component--br.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--br.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--br.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(3) {
       transform: translateY(-210px) scale(1); transition-delay: 0.15s;
     }
-    .mfb-component--bl.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--bl.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--bl.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
-    .mfb-component--br.mfb-zoomin[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--br.mfb-zoomin .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--br.mfb-zoomin[data-mfb-state="open"] .mfb-component__list li:nth-child(4) {
       transform: translateY(-280px) scale(1); transition-delay: 0.2s;
     }
@@ -510,27 +515,27 @@
     .mfb-component--tr.mfb-fountain .mfb-component__list li:nth-child(4) {
       transform: translateY(-280px) scale(0); transition: all 0.5s; transition-delay: 0s;
     }
-    .mfb-component--tl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--tl.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--tl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
-    .mfb-component--tr.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--tr.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--tr.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(1) {
       transform: translateY(70px) scale(1); transition-delay: 0.05s;
     }
-    .mfb-component--tl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--tl.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--tl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
-    .mfb-component--tr.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--tr.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--tr.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(2) {
       transform: translateY(140px) scale(1); transition-delay: 0.1s;
     }
-    .mfb-component--tl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--tl.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--tl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
-    .mfb-component--tr.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--tr.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--tr.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(3) {
       transform: translateY(210px) scale(1); transition-delay: 0.15s;
     }
-    .mfb-component--tl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--tl.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--tl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
-    .mfb-component--tr.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--tr.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--tr.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(4) {
       transform: translateY(280px) scale(1); transition-delay: 0.2s;
     }
@@ -554,27 +559,27 @@
     .mfb-component--br.mfb-fountain .mfb-component__list li:nth-child(4) {
       transform: translateY(280px) scale(0); transition: all 0.5s; transition-delay: 0s;
     }
-    .mfb-component--bl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--bl.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--bl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(1),
-    .mfb-component--br.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(1),
+    .mfb-component--br.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(1),
     .mfb-component--br.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(1) {
       transform: translateY(-70px) scale(1); transition-delay: 0.05s;
     }
-    .mfb-component--bl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--bl.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--bl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(2),
-    .mfb-component--br.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(2),
+    .mfb-component--br.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(2),
     .mfb-component--br.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(2) {
       transform: translateY(-140px) scale(1); transition-delay: 0.1s;
     }
-    .mfb-component--bl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--bl.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--bl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(3),
-    .mfb-component--br.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(3),
+    .mfb-component--br.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(3),
     .mfb-component--br.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(3) {
       transform: translateY(-210px) scale(1); transition-delay: 0.15s;
     }
-    .mfb-component--bl.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--bl.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--bl.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(4),
-    .mfb-component--br.mfb-fountain[data-mfb-toggle="hover"]:hover .mfb-component__list li:nth-child(4),
+    .mfb-component--br.mfb-fountain .mfb-component__wrap:hover .mfb-component__button--main[data-mfb-toggle="hover"] ~ .mfb-component__list li:nth-child(4),
     .mfb-component--br.mfb-fountain[data-mfb-state="open"] .mfb-component__list li:nth-child(4) {
       transform: translateY(-280px) scale(1); transition-delay: 0.2s;
     }
@@ -596,7 +601,7 @@
       top: 50%;
       margin-top: -11px;
     }
-    [data-mfb-toggle="hover"] [data-mfb-label]:hover:after,
+    .mfb-component__wrap:hover [data-mfb-label]:after,
     [data-mfb-state="open"] [data-mfb-label]:after {
       opacity: 1;
       transition: all 0.3s;
@@ -621,13 +626,13 @@
 </head>
 <body>
 
-  <ul id="menu" class="mfb-component--br mfb-zoomin" data-mfb-toggle="hover">
-    <li class="mfb-component__wrap">
-	<button style="height: 56px;width: 56px;z-index: 20;background-color: #E40A5D;display: inline-block;position: relative;border: none;border-radius: 50%;box-shadow: 0 0 4px rgba(0,0,0,0.14), 0 4px 8px rgba(0,0,0,0.28);cursor: pointer;outline: none;padding: 0;-webkit-user-drag: none;color: #f1f1f1;">
+  <div id="menu" class="mfb-component--br mfb-zoomin">
+  <button>
         <i class="mfb-component__main-icon--resting ion-plus-round"></i>
         <i class="mfb-component__main-icon--active ion-close-round"></i>
       </button>
-      <a href="#" class="mfb-component__button--main">
+    <li class="mfb-component__wrap">
+      <a href="#" class="mfb-component__button--main" data-mfb-toggle="hover">
         <i class="mfb-component__main-icon--resting ion-plus-round"></i>
         <i class="mfb-component__main-icon--active ion-close-round"></i>
       </a>
@@ -674,7 +679,7 @@
         </li>
       </ul>
     </li>
-  </ul>
+  </div>
 
   <section id="panel" class="panel">
     <header>
